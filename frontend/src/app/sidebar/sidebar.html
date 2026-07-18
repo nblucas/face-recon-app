@@ -1,0 +1,8 @@
+<div class="sidebar">
+  <header class="header">{{ title }}</header>
+  <nav class="nav">
+    @for (item of items; track item.path) {
+      <a class="item" [routerLink]="item.path">{{ item.label }}</a>
+    }
+  </nav>
+</div>

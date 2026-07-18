@@ -1,0 +1,9 @@
+.container {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  min-height: 100vh;
+}
+
+.content {
+  overflow: auto;
+}
