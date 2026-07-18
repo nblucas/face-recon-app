@@ -1,4 +1,4 @@
-package dev.nblucas.facereconbackend;
+package dev.nblucas.facialreconbackend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Import;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
-class FacereconbackendApplicationTests {
+class FacialreconbackendApplicationTests {
 
 	@Test
 	void contextLoads() {

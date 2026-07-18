@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>dev.nblucas</groupId>
-	<artifactId>facereconbackend</artifactId>
+	<artifactId>facialreconbackend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
