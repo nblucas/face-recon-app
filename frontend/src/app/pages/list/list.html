@@ -1,1 +1,24 @@
-<h1>List</h1>
+<div class="list">
+  <h1>Registered users</h1>
+  <div class="rows">
+    <div class="row header">
+      <span>Picture</span>
+      <span>Name</span>
+      <span>CPF</span>
+      <span>Actions</span>
+    </div>
+    @for (user of users(); track user.cpf) {
+      <div class="row">
+        <img class="picture" [src]="user.pictureUrl" [alt]="user.name" />
+        <span class="name">{{ user.name }}</span>
+        <span class="cpf">{{ user.cpf }}</span>
+        <span class="actions">
+          <button type="button" class="action-button" (click)="onEdit(user)">Edit</button>
+          <button type="button" class="action-button delete" (click)="onDelete(user)">
+            Delete
+          </button>
+        </span>
+      </div>
+    }
+  </div>
+</div>

@@ -8,7 +8,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Register', path: '/register' },
-  { label: 'List', path: '/list' },
+  { label: 'Users', path: '/list' },
   { label: 'Verification', path: '/verification' },
   { label: 'Identification', path: '/identification' },
 ];
