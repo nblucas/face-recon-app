@@ -7,13 +7,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
-
-	@Bean
-	@ServiceConnection
-	PostgreSQLContainer pgvectorContainer() {
-		return new PostgreSQLContainer(DockerImageName.parse("pgvector/pgvector:pg16"));
-	}
+public class TestcontainersConfiguration {
 
 	@Bean
 	@ServiceConnection
