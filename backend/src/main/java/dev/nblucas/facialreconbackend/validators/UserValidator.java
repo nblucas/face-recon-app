@@ -1,9 +1,11 @@
 package dev.nblucas.facialreconbackend.validators;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
+import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -30,12 +32,14 @@ public class UserValidator {
         validatePicture(picture);
     }
 
-    private void validateCpf(String cpf) {
-        boolean isCpfFormatInvalid = false;
+    public void validateUpdate(Long id, UpdateUserRequest request, MultipartFile picture) {
+        validateUserExists(id);
+        validateName(request.name());
+        validatePicture(picture);
+    }
 
-        if (cpf == null || !cpf.matches("\\d{11}") || cpf.chars().distinct().count() == 1) {
-            isCpfFormatInvalid = true;
-        }
+    private void validateCpf(String cpf) {
+        boolean isCpfFormatInvalid = cpf == null || !cpf.matches("\\d{11}") || cpf.chars().distinct().count() == 1;
 
         if (isCpfFormatInvalid) {
             throw new InvalidCpfException("CPF given is invalid.");
@@ -67,6 +71,12 @@ public class UserValidator {
 
         int remainder = (sum * 10) % 11;
         return remainder == 10 ? 0 : remainder;
+    }
+
+    private void validateUserExists(Long id) {
+        if (!userRepository.exists(id)) {
+            throw new UserNotFoundException("User with given ID not found.");
+        }
     }
 
     private void validateName(String name) {

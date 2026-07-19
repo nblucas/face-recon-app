@@ -1,6 +1,7 @@
 package dev.nblucas.facialreconbackend.services;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
@@ -33,7 +34,16 @@ public class UserServiceImpl implements UserService {
         return createUserResponse(user);
     }
 
+    public UserResponse update(Long id, UpdateUserRequest request, MultipartFile picture) {
+        this.userValidator.validateUpdate(id, request, picture);
+        // Generate UUID for picture file name and add picture to filesystem
+        // Detect face in picture (if exists, and if not, validate)
+        // Extract numerical representation of picture
+        TbUsersRecord user = userRepository.update(id, request.name(), "placeholder");
+        return createUserResponse(user);
+    }
+
     private UserResponse createUserResponse(TbUsersRecord user) {
-        return new UserResponse(user.getName(), user.getCpf(), user.getCreatedAt());
+        return new UserResponse(user.getCoSeqUser(), user.getName(), user.getCpf(), user.getCreatedAt());
     }
 }

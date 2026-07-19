@@ -35,4 +35,20 @@ public class UserRepositoryImpl implements UserRepository {
         Condition condition = TB_USERS.CPF.eq(cpf);
         return this.dsl.fetchCount(TB_USERS, condition) > 0;
     }
+
+    public boolean exists(Long id) {
+        Condition condition = TB_USERS.CO_SEQ_USER.eq(id);
+        return this.dsl.fetchCount(TB_USERS, condition) > 0;
+    }
+
+    public TbUsersRecord update(Long id, String name, String picturePath) {
+        return this.dsl
+                .update(TB_USERS)
+                .set(TB_USERS.NAME, name)
+                .set(TB_USERS.PICTURE_PATH, picturePath)
+                .set(TB_USERS.UPDATED_AT, OffsetDateTime.now())
+                .where(TB_USERS.CO_SEQ_USER.eq(id))
+                .returning()
+                .fetchOne();
+    }
 }

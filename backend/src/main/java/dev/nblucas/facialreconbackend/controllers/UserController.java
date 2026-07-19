@@ -1,12 +1,12 @@
 package dev.nblucas.facialreconbackend.controllers;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,5 +33,19 @@ public class UserController {
     ) {
         UserResponse user = this.userService.create(request, picture);
         return new ResponseEntity<>(user, HttpStatus.CREATED);
+    }
+
+    @PutMapping(
+            path = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestPart UpdateUserRequest request,
+            @RequestPart("picture") MultipartFile picture
+    ) {
+        UserResponse user = this.userService.update(id, request, picture);
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 }

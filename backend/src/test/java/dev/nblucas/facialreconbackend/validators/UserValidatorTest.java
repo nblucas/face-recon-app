@@ -1,9 +1,11 @@
 package dev.nblucas.facialreconbackend.validators;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
+import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -189,7 +191,60 @@ class UserValidatorTest {
 
         assertThatThrownBy(() -> userValidator.validateCreation(request, picture))
                 .isInstanceOf(InvalidPictureException.class)
-                .hasMessage("Picture given must be PNG or JPEG.");
+                .hasMessage("File given must be PNG or JPEG.");
+    }
+
+    @Test
+    void shouldNotThrowWhenUpdateIsValid() {
+        UpdateUserRequest request = new UpdateUserRequest("John Doe");
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatCode(() -> userValidator.validateUpdate(1L, request, picture))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowUserNotFoundExceptionWhenIdDoesNotExistOnUpdate() {
+        UpdateUserRequest request = new UpdateUserRequest("John Doe");
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> userValidator.validateUpdate(1L, request, picture))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessage("User with given ID not found.");
+    }
+
+    @ParameterizedTest(name = "[{index}] name={0}")
+    @NullSource
+    @ValueSource(strings = {
+            "",
+            "  ",
+            "         "
+    })
+    void shouldThrowInvalidNameExceptionWhenNameIsEmptyOrNullOnUpdate(String name) {
+        UpdateUserRequest request = new UpdateUserRequest(name);
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> userValidator.validateUpdate(1L, request, picture))
+                .isInstanceOf(InvalidNameException.class)
+                .hasMessage("Name given is invalid.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenPictureIsAnotherFormatOnUpdate() {
+        UpdateUserRequest request = new UpdateUserRequest("John Doe");
+        MultipartFile picture = new MockMultipartFile("picture", "photo.bmp", "image/bmp", imageBytes("bmp"));
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> userValidator.validateUpdate(1L, request, picture))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("File given must be PNG or JPEG.");
     }
 
     private MultipartFile validPicture() {
