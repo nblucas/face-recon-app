@@ -34,7 +34,12 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid #ddd;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+}
+
+.form-error {
+  margin-right: auto;
 }
 
 .button {

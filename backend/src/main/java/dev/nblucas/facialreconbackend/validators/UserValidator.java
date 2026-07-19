@@ -88,16 +88,16 @@ public class UserValidator {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
 
             if (!readers.hasNext()) {
-                throw new InvalidPictureException("Picture given is not a valid image.");
+                throw new InvalidPictureException("File given is not a valid image.");
             }
 
             String formatName = readers.next().getFormatName().toUpperCase();
 
             if (!formatName.equals("PNG") && !formatName.equals("JPEG")) {
-                throw new InvalidPictureException("Picture given must be PNG or JPEG.");
+                throw new InvalidPictureException("File given must be PNG or JPEG.");
             }
         } catch (IOException e) {
-            throw new InvalidPictureException("Could not read picture given.");
+            throw new InvalidPictureException("Could not read file given.");
         }
     }
 }

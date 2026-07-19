@@ -36,6 +36,9 @@
     </div>
   </div>
   <footer class="footer">
+    @if (errorMessage()) {
+      <span class="error form-error">{{ errorMessage() }}</span>
+    }
     <button type="submit" class="button">Save</button>
   </footer>
 </form>
