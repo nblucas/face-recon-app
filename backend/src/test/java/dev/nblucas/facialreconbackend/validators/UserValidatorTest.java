@@ -4,6 +4,7 @@ import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
+import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
@@ -245,6 +247,33 @@ class UserValidatorTest {
         assertThatThrownBy(() -> userValidator.validateUpdate(1L, request, picture))
                 .isInstanceOf(InvalidPictureException.class)
                 .hasMessage("File given must be PNG or JPEG.");
+    }
+
+    @ParameterizedTest(name = "[{index}] offset={0}, limit={1}")
+    @CsvSource({
+            "0, 1",
+            "0, 20",
+            "5, 20",
+    })
+    void shouldNotThrowWhenPaginationIsValid(int offset, int limit) {
+        assertThatCode(() -> userValidator.validatePagination(offset, limit))
+                .doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest(name = "[{index}] offset={0}")
+    @ValueSource(ints = {-1, -10})
+    void shouldThrowInvalidPaginationExceptionWhenOffsetIsNegative(int offset) {
+        assertThatThrownBy(() -> userValidator.validatePagination(offset, 20))
+                .isInstanceOf(InvalidPaginationException.class)
+                .hasMessage("Offset given can not be negative.");
+    }
+
+    @ParameterizedTest(name = "[{index}] limit={0}")
+    @ValueSource(ints = {0, -1, 21, 100})
+    void shouldThrowInvalidPaginationExceptionWhenLimitIsOutOfRange(int limit) {
+        assertThatThrownBy(() -> userValidator.validatePagination(0, limit))
+                .isInstanceOf(InvalidPaginationException.class)
+                .hasMessage("Limit given must be between 1 and 20.");
     }
 
     private MultipartFile validPicture() {

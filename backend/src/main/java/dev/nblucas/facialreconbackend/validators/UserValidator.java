@@ -4,6 +4,7 @@ import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
+import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
@@ -19,6 +20,8 @@ import java.util.Iterator;
 
 @Component
 public class UserValidator {
+    private static final int MAX_PAGE_LIMIT = 20;
+
     UserRepository userRepository;
 
     @Autowired
@@ -36,6 +39,16 @@ public class UserValidator {
         validateUserExists(id);
         validateName(request.name());
         validatePicture(picture);
+    }
+
+    public void validatePagination(int offset, int limit) {
+        if (offset < 0) {
+            throw new InvalidPaginationException("Offset given can not be negative.");
+        }
+
+        if (limit < 1 || limit > MAX_PAGE_LIMIT) {
+            throw new InvalidPaginationException("Limit given must be between 1 and " + MAX_PAGE_LIMIT + ".");
+        }
     }
 
     private void validateCpf(String cpf) {

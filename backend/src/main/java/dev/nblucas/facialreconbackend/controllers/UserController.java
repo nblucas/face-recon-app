@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.controllers;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.services.UserService;
 import jakarta.validation.Valid;
@@ -47,5 +48,14 @@ public class UserController {
     ) {
         UserResponse user = this.userService.update(id, request, picture);
         return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserPageResponse> listUsers(
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        UserPageResponse page = this.userService.list(offset, limit);
+        return new ResponseEntity<>(page, HttpStatus.OK);
     }
 }

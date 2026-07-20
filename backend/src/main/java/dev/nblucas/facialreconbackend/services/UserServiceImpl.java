@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.services;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
+import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
@@ -9,6 +10,8 @@ import dev.nblucas.facialreconbackend.validators.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -41,6 +44,17 @@ public class UserServiceImpl implements UserService {
         // Extract numerical representation of picture
         TbUsersRecord user = userRepository.update(id, request.name(), "placeholder");
         return createUserResponse(user);
+    }
+
+    public UserPageResponse list(int offset, int limit) {
+        this.userValidator.validatePagination(offset, limit);
+
+        List<UserResponse> users = userRepository.findAll(offset, limit).stream()
+                .map(this::createUserResponse)
+                .toList();
+        long total = userRepository.count();
+
+        return new UserPageResponse(users, total, offset, limit);
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {
