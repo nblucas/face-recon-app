@@ -51,6 +51,16 @@ public class UserValidator {
         validatePicture(picture);
     }
 
+    public void validateVerification(String cpf, MultipartFile picture) {
+        validateCpfFormat(cpf);
+
+        if (!userRepository.exists(cpf)) {
+            throw new UserNotFoundException("User with given CPF not found.");
+        }
+
+        validatePicture(picture);
+    }
+
     public void validatePagination(int offset, int limit) {
         if (offset < 0) {
             throw new InvalidPaginationException("Offset given can not be negative.");
@@ -62,6 +72,14 @@ public class UserValidator {
     }
 
     private void validateCpf(String cpf) {
+        validateCpfFormat(cpf);
+
+        if(userRepository.exists(cpf)) {
+            throw new InvalidCpfException("CPF given is already registered.");
+        }
+    }
+
+    private void validateCpfFormat(String cpf) {
         boolean isCpfFormatInvalid = cpf == null || !cpf.matches("\\d{11}") || cpf.chars().distinct().count() == 1;
 
         if (isCpfFormatInvalid) {
@@ -77,10 +95,6 @@ public class UserValidator {
 
         if(isCpfFormatInvalid) {
             throw new InvalidCpfException("CPF given is invalid.");
-        }
-
-        if(userRepository.exists(cpf)) {
-            throw new InvalidCpfException("CPF given is already registered.");
         }
     }
 

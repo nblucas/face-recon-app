@@ -306,6 +306,82 @@ class UserValidatorTest {
                 .hasMessage("Picture given can not be empty.");
     }
 
+    @ParameterizedTest(name = "[{index}] cpf={0}")
+    @ValueSource(strings = {
+            "52998224725",
+            "11144477735",
+            "12345678909",
+    })
+    void shouldNotThrowWhenVerificationCpfAndPictureAreValid(String cpf) {
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(cpf)).thenReturn(true);
+
+        assertThatCode(() -> userValidator.validateVerification(cpf, picture))
+                .doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest(name = "[{index}] cpf={0}")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void shouldThrowInvalidCpfExceptionWhenVerificationCpfIsNullOrBlank(String cpf) {
+        MultipartFile picture = validPicture();
+
+        assertThatThrownBy(() -> userValidator.validateVerification(cpf, picture))
+                .isInstanceOf(InvalidCpfException.class)
+                .hasMessage("CPF given is invalid.");
+    }
+
+    @ParameterizedTest(name = "[{index}] cpf={0}")
+    @ValueSource(strings = {
+            "52998224721",
+            "11144477730",
+            "12345678900",
+    })
+    void shouldThrowInvalidCpfExceptionWhenVerificationCpfHasInvalidCheckDigit(String cpf) {
+        MultipartFile picture = validPicture();
+
+        assertThatThrownBy(() -> userValidator.validateVerification(cpf, picture))
+                .isInstanceOf(InvalidCpfException.class)
+                .hasMessage("CPF given is invalid.");
+    }
+
+    @Test
+    void shouldThrowUserNotFoundExceptionWhenVerificationCpfIsNotRegistered() {
+        String validCpfButUnregistered = "11144477735";
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(validCpfButUnregistered)).thenReturn(false);
+
+        assertThatThrownBy(() -> userValidator.validateVerification(validCpfButUnregistered, picture))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessage("User with given CPF not found.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenVerificationPictureIsAnotherFormat() {
+        String cpf = "11144477735";
+        MultipartFile picture = new MockMultipartFile("picture", "photo.bmp", "image/bmp", imageBytes("bmp"));
+
+        when(userRepository.exists(cpf)).thenReturn(true);
+
+        assertThatThrownBy(() -> userValidator.validateVerification(cpf, picture))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("File given must be PNG or JPEG.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenVerificationPictureIsEmpty() {
+        String cpf = "11144477735";
+        MultipartFile picture = new MockMultipartFile("picture", "photo.png", "image/png", new byte[0]);
+
+        when(userRepository.exists(cpf)).thenReturn(true);
+
+        assertThatThrownBy(() -> userValidator.validateVerification(cpf, picture))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Picture given can not be empty.");
+    }
+
     @ParameterizedTest(name = "[{index}] offset={0}, limit={1}")
     @CsvSource({
             "0, 1",
