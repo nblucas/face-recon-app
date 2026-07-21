@@ -101,7 +101,19 @@ export class List {
   }
 
   protected onDelete(user: UserResponse): void {
-    this.users.update((users) => users.filter((u) => u.id !== user.id));
+    this.userService.deleteUser(user.id).subscribe({
+      next: () => {
+        if (this.users().length === 1 && this.offset() > 0) {
+          this.offset.set(Math.max(0, this.offset() - this.limit));
+        }
+        this.fetchUsers();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorMessage.set(
+          typeof err.error === 'string' ? err.error : 'Failed to delete user. Please try again.',
+        );
+      },
+    });
   }
 
   private fetchUsers(): void {
