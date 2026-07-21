@@ -6,6 +6,7 @@ public record UserResponse(
         Long id,
         String name,
         String cpf,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
 ) {
 }

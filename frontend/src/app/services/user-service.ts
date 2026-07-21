@@ -7,6 +7,7 @@ export interface UserResponse {
   name: string;
   cpf: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserPageResponse {

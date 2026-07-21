@@ -73,7 +73,7 @@ class UserServiceImplTest {
         inOrder.verify(pictureStorageService).store(picture);
         inOrder.verify(userRepository).create("John Doe", "52998224725", "generated.png");
 
-        assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", createdAt));
+        assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", createdAt, createdAt));
     }
 
     @Test
@@ -144,7 +144,7 @@ class UserServiceImplTest {
         inOrder.verify(pictureStorageService).store(picture);
         inOrder.verify(userRepository).update(1L, "John Smith", "new.png");
 
-        assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt));
+        assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt, updatedAt));
     }
 
     @Test
@@ -282,8 +282,9 @@ class UserServiceImplTest {
         TbUsersRecord existingUser = new TbUsersRecord(
                 1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
         OffsetDateTime createdAt = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime updatedAt = OffsetDateTime.now();
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "new.png", createdAt, OffsetDateTime.now());
+                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
         when(pictureStorageService.store(picture)).thenReturn("new.png");
@@ -292,7 +293,7 @@ class UserServiceImplTest {
 
         UserResponse response = userService.update(1L, request, picture);
 
-        assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt));
+        assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt, updatedAt));
     }
 
     @Test
@@ -326,8 +327,8 @@ class UserServiceImplTest {
 
         assertThat(response).isEqualTo(new UserPageResponse(
                 List.of(
-                        new UserResponse(1L, "John Doe", "52998224725", createdAt),
-                        new UserResponse(2L, "Jane Doe", "11144477735", createdAt)
+                        new UserResponse(1L, "John Doe", "52998224725", createdAt, createdAt),
+                        new UserResponse(2L, "Jane Doe", "11144477735", createdAt, createdAt)
                 ),
                 2L, 0, 20
         ));
@@ -391,7 +392,8 @@ class UserServiceImplTest {
 
         UserResponse response = userService.get(1L);
 
-        assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", user.getCreatedAt()));
+        assertThat(response).isEqualTo(
+                new UserResponse(1L, "John Doe", "52998224725", user.getCreatedAt(), user.getUpdatedAt()));
     }
 
     @Test

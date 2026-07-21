@@ -22,7 +22,6 @@ export class Details {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly editing = signal(false);
   protected readonly pictureBroken = signal(false);
-  protected readonly pictureVersion = signal(0);
 
   protected readonly formatCpf = formatCpf;
   protected readonly initialsOf = initialsOf;
@@ -34,7 +33,7 @@ export class Details {
   }
 
   protected pictureUrl(user: UserResponse): string {
-    return `/api/v1/users/${user.id}/picture?v=${this.pictureVersion()}`;
+    return `/api/v1/users/${user.id}/picture?v=${encodeURIComponent(user.updatedAt)}`;
   }
 
   protected onPictureError(): void {
@@ -51,7 +50,6 @@ export class Details {
 
   protected onEditSaved(): void {
     this.editing.set(false);
-    this.pictureVersion.update((v) => v + 1);
     this.fetchUser(Number(this.id()));
   }
 

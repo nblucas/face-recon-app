@@ -143,6 +143,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {
-        return new UserResponse(user.getCoSeqUser(), user.getName(), user.getCpf(), user.getCreatedAt());
+        return new UserResponse(
+                user.getCoSeqUser(), user.getName(), user.getCpf(), user.getCreatedAt(), user.getUpdatedAt());
     }
 }

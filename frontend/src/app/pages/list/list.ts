@@ -26,7 +26,6 @@ export class List {
   protected readonly limit = PAGE_LIMIT;
   protected readonly brokenPictureIds = signal<ReadonlySet<number>>(new Set());
   protected readonly editingUser = signal<UserResponse | null>(null);
-  protected readonly pictureVersions = signal<ReadonlyMap<number, number>>(new Map());
 
   protected readonly formatCpf = formatCpf;
   protected readonly initialsOf = initialsOf;
@@ -64,8 +63,7 @@ export class List {
   }
 
   protected pictureUrl(user: UserResponse): string {
-    const version = this.pictureVersions().get(user.id) ?? 0;
-    return `/api/v1/users/${user.id}/picture?v=${version}`;
+    return `/api/v1/users/${user.id}/picture?v=${encodeURIComponent(user.updatedAt)}`;
   }
 
   protected onPictureError(user: UserResponse): void {
@@ -85,14 +83,6 @@ export class List {
   }
 
   protected onEditSaved(): void {
-    const editedUserId = this.editingUser()!.id;
-
-    this.pictureVersions.update((versions) => {
-      const next = new Map(versions);
-      next.set(editedUserId, (next.get(editedUserId) ?? 0) + 1);
-      return next;
-    });
-
     this.editingUser.set(null);
     this.fetchUsers();
   }
