@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserResponse, UserService } from '../../services/user-service';
+import { EditUserModal } from './edit-user-modal/edit-user-modal';
 
 const PAGE_LIMIT = 20;
 
 @Component({
   selector: 'app-list',
-  imports: [],
+  imports: [EditUserModal],
   templateUrl: './list.html',
   styleUrl: './list.css',
 })
@@ -21,6 +22,8 @@ export class List {
 
   protected readonly limit = PAGE_LIMIT;
   protected readonly brokenPictureIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly editingUser = signal<UserResponse | null>(null);
+  protected readonly pictureVersions = signal<ReadonlyMap<number, number>>(new Map());
 
   constructor() {
     this.fetchUsers();
@@ -55,7 +58,8 @@ export class List {
   }
 
   protected pictureUrl(user: UserResponse): string {
-    return `/api/v1/users/${user.id}/picture`;
+    const version = this.pictureVersions().get(user.id) ?? 0;
+    return `/api/v1/users/${user.id}/picture?v=${version}`;
   }
 
   protected onPictureError(user: UserResponse): void {
@@ -76,7 +80,24 @@ export class List {
   }
 
   protected onEdit(user: UserResponse): void {
-    console.log('Edit user', user);
+    this.editingUser.set(user);
+  }
+
+  protected onEditCancelled(): void {
+    this.editingUser.set(null);
+  }
+
+  protected onEditSaved(): void {
+    const editedUserId = this.editingUser()!.id;
+
+    this.pictureVersions.update((versions) => {
+      const next = new Map(versions);
+      next.set(editedUserId, (next.get(editedUserId) ?? 0) + 1);
+      return next;
+    });
+
+    this.editingUser.set(null);
+    this.fetchUsers();
   }
 
   protected onDelete(user: UserResponse): void {

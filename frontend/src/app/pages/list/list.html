@@ -49,4 +49,8 @@
       </div>
     }
   }
+
+  @if (editingUser(); as user) {
+    <app-edit-user-modal [user]="user" (saved)="onEditSaved()" (cancelled)="onEditCancelled()" />
+  }
 </div>
