@@ -7,6 +7,8 @@
 
   @if (loading()) {
     <p>Loading...</p>
+  } @else if (total() === 0) {
+    <p class="empty">No users registered yet.</p>
   } @else {
     <div class="rows">
       <div class="row header">
