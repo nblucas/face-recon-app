@@ -1,17 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { UserResponse, UserService } from '../../services/user-service';
 
-interface RegisteredUser {
-  name: string;
-  cpf: string;
-  pictureUrl: string;
-}
-
-const MOCK_USERS: RegisteredUser[] = [
-  { name: 'Michael Scott', cpf: '123.456.789-00', pictureUrl: 'https://placehold.co/96x96?text=MS' },
-  { name: 'Jim Halpert', cpf: '234.567.890-11', pictureUrl: 'https://placehold.co/96x96?text=JH' },
-  { name: 'Pam Beesly', cpf: '345.678.901-22', pictureUrl: 'https://placehold.co/96x96?text=PB' },
-  { name: 'Dwight Schrute', cpf: '456.789.012-33', pictureUrl: 'https://placehold.co/96x96?text=DS' },
-];
+const PAGE_LIMIT = 20;
 
 @Component({
   selector: 'app-list',
@@ -20,13 +11,48 @@ const MOCK_USERS: RegisteredUser[] = [
   styleUrl: './list.css',
 })
 export class List {
-  protected readonly users = signal<RegisteredUser[]>(MOCK_USERS);
+  private readonly userService = inject(UserService);
 
-  protected onEdit(user: RegisteredUser): void {
+  protected readonly users = signal<UserResponse[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly errorMessage = signal<string | null>(null);
+
+  constructor() {
+    this.fetchUsers();
+  }
+
+  protected initialsOf(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]!.toUpperCase())
+      .join('');
+  }
+
+  protected onEdit(user: UserResponse): void {
     console.log('Edit user', user);
   }
 
-  protected onDelete(user: RegisteredUser): void {
-    this.users.update((users) => users.filter((u) => u.cpf !== user.cpf));
+  protected onDelete(user: UserResponse): void {
+    this.users.update((users) => users.filter((u) => u.id !== user.id));
+  }
+
+  private fetchUsers(): void {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+
+    this.userService.listUsers(0, PAGE_LIMIT).subscribe({
+      next: (page) => {
+        this.users.set(page.users);
+        this.loading.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorMessage.set(
+          typeof err.error === 'string' ? err.error : 'Failed to load users. Please try again.',
+        );
+        this.loading.set(false);
+      },
+    });
   }
 }
