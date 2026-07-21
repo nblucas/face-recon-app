@@ -1,6 +1,5 @@
 package dev.nblucas.facialreconbackend.face;
 
-import dev.nblucas.facialreconbackend.common.exceptions.InvalidFaceCountException;
 import dev.nblucas.facialreconbackend.common.exceptions.InvalidPictureException;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.springframework.stereotype.Service;
@@ -15,11 +14,15 @@ import java.util.List;
 public class FaceEmbeddingService {
 
     private final FaceDetector faceDetector;
+    private final FaceValidator faceValidator;
     private final FaceAligner faceAligner;
     private final FaceEmbedder faceEmbedder;
 
-    public FaceEmbeddingService(FaceDetector faceDetector, FaceAligner faceAligner, FaceEmbedder faceEmbedder) {
+    public FaceEmbeddingService(
+            FaceDetector faceDetector, FaceValidator faceValidator, FaceAligner faceAligner, FaceEmbedder faceEmbedder
+    ) {
         this.faceDetector = faceDetector;
+        this.faceValidator = faceValidator;
         this.faceAligner = faceAligner;
         this.faceEmbedder = faceEmbedder;
     }
@@ -27,13 +30,7 @@ public class FaceEmbeddingService {
     public float[] extractEmbedding(MultipartFile picture) {
         BufferedImage image = readImage(picture);
         List<DetectedFace> faces = faceDetector.detect(image);
-
-        if (faces.isEmpty()) {
-            throw new InvalidFaceCountException("No face detected in the picture given.");
-        }
-        if (faces.size() > 1) {
-            throw new InvalidFaceCountException("More than one face detected in the picture given.");
-        }
+        faceValidator.validateFaceCount(faces);
 
         try (Mat aligned = faceAligner.align(image, faces.get(0).landmarks())) {
             return faceEmbedder.embed(aligned);

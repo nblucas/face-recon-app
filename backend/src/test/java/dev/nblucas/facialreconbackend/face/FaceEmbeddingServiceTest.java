@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +25,9 @@ class FaceEmbeddingServiceTest {
 
     @Mock
     private FaceDetector faceDetector;
+
+    @Mock
+    private FaceValidator faceValidator;
 
     @Mock
     private FaceAligner faceAligner;
@@ -34,31 +39,24 @@ class FaceEmbeddingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FaceEmbeddingService(faceDetector, faceAligner, faceEmbedder);
+        service = new FaceEmbeddingService(faceDetector, faceValidator, faceAligner, faceEmbedder);
     }
 
     @Test
-    void shouldThrowInvalidFaceCountWhenNoFaceIsDetected() {
-        when(faceDetector.detect(any())).thenReturn(List.of());
+    void shouldPropagateExceptionWhenFaceCountValidationFails() {
+        List<DetectedFace> faces = List.of();
+        InvalidFaceCountException validationFailure =
+                new InvalidFaceCountException("No face detected in the picture given.");
+        when(faceDetector.detect(any())).thenReturn(faces);
+        doThrow(validationFailure).when(faceValidator).validateFaceCount(faces);
 
-        assertThatThrownBy(() -> service.extractEmbedding(onePixelPngPicture()))
-                .isInstanceOf(InvalidFaceCountException.class)
-                .hasMessage("No face detected in the picture given.");
+        assertThatThrownBy(() -> service.extractEmbedding(onePixelPngPicture())).isSameAs(validationFailure);
+
+        verifyNoInteractions(faceAligner, faceEmbedder);
     }
 
     @Test
-    void shouldThrowInvalidFaceCountWhenMoreThanOneFaceIsDetected() {
-        DetectedFace first = new DetectedFace(0, 0, 10, 10, 0.9f, new float[5][2]);
-        DetectedFace second = new DetectedFace(20, 20, 30, 30, 0.8f, new float[5][2]);
-        when(faceDetector.detect(any())).thenReturn(List.of(first, second));
-
-        assertThatThrownBy(() -> service.extractEmbedding(onePixelPngPicture()))
-                .isInstanceOf(InvalidFaceCountException.class)
-                .hasMessage("More than one face detected in the picture given.");
-    }
-
-    @Test
-    void shouldAlignAndEmbedWhenExactlyOneFaceIsDetected() {
+    void shouldAlignAndEmbedWhenFaceCountValidationPasses() {
         float[][] landmarks = new float[5][2];
         DetectedFace face = new DetectedFace(0, 0, 10, 10, 0.9f, landmarks);
         Mat aligned = new Mat();
