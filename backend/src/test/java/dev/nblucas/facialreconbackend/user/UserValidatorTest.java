@@ -280,6 +280,32 @@ class UserValidatorTest {
                 .hasMessage("File given must be PNG or JPEG.");
     }
 
+    @Test
+    void shouldNotThrowWhenIdentificationPictureIsValid() {
+        MultipartFile picture = validPicture();
+
+        assertThatCode(() -> userValidator.validateIdentification(picture))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenIdentificationPictureIsAnotherFormat() {
+        MultipartFile picture = new MockMultipartFile("picture", "photo.bmp", "image/bmp", imageBytes("bmp"));
+
+        assertThatThrownBy(() -> userValidator.validateIdentification(picture))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("File given must be PNG or JPEG.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenIdentificationPictureIsEmpty() {
+        MultipartFile picture = new MockMultipartFile("picture", "photo.png", "image/png", new byte[0]);
+
+        assertThatThrownBy(() -> userValidator.validateIdentification(picture))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Picture given can not be empty.");
+    }
+
     @ParameterizedTest(name = "[{index}] offset={0}, limit={1}")
     @CsvSource({
             "0, 1",

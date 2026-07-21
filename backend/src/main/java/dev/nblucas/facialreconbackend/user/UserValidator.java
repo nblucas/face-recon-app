@@ -47,6 +47,10 @@ public class UserValidator {
         }
     }
 
+    public void validateIdentification(MultipartFile picture) {
+        validatePicture(picture);
+    }
+
     public void validatePagination(int offset, int limit) {
         if (offset < 0) {
             throw new InvalidPaginationException("Offset given can not be negative.");
