@@ -1,6 +1,6 @@
 package dev.nblucas.facialreconbackend.face;
 
-import dev.nblucas.facialreconbackend.exceptions.InvalidFaceCountException;
+import dev.nblucas.facialreconbackend.common.exceptions.InvalidFaceCountException;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

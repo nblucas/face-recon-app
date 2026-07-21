@@ -1,7 +1,7 @@
 package dev.nblucas.facialreconbackend.face;
 
-import dev.nblucas.facialreconbackend.exceptions.InvalidFaceCountException;
-import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
+import dev.nblucas.facialreconbackend.common.exceptions.InvalidFaceCountException;
+import dev.nblucas.facialreconbackend.common.exceptions.InvalidPictureException;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
