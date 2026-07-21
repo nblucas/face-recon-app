@@ -147,6 +147,13 @@
 			<plugin>
 				<groupId>org.jooq</groupId>
 				<artifactId>jooq-codegen-maven</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>org.jooq</groupId>
+						<artifactId>jooq-meta-extensions</artifactId>
+						<version>${jooq.version}</version>
+					</dependency>
+				</dependencies>
 				<executions>
 					<execution>
 						<goals>
@@ -155,16 +162,28 @@
 					</execution>
 				</executions>
 				<configuration>
-					<jdbc>
-						<driver>org.postgresql.Driver</driver>
-						<url>jdbc:postgresql://localhost:5432/facial_recon</url>
-						<user>app_role</user>
-						<password>aoI%p25@1d!</password>
-					</jdbc>
 					<generator>
 						<database>
-							<name>org.jooq.meta.postgres.PostgresDatabase</name>
-							<inputSchema>public</inputSchema>
+							<name>org.jooq.meta.extensions.ddl.DDLDatabase</name>
+							<properties>
+								<property>
+									<key>scripts</key>
+									<value>src/main/resources/db/migration</value>
+								</property>
+								<property>
+									<key>sort</key>
+									<value>flyway</value>
+								</property>
+								<property>
+									<key>parseDialect</key>
+									<value>POSTGRES</value>
+								</property>
+								<property>
+									<key>defaultNameCase</key>
+									<value>lower</value>
+								</property>
+							</properties>
+							<inputSchema>PUBLIC</inputSchema>
 						</database>
 						<target>
 							<packageName>dev.nblucas.facialreconbackend.jooq</packageName>
