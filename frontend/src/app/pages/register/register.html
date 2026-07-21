@@ -1,40 +1,56 @@
 <form class="register" [formGroup]="form" (ngSubmit)="onSubmit()">
   <h1>Register</h1>
-  <div class="fields">
-    <div class="field">
-      <label for="name">Name</label>
-      <input
-        id="name"
-        type="text"
-        formControlName="name"
-        class="text-field"
-        [class.invalid]="form.controls.name.invalid && form.controls.name.touched"
-      />
-      @if (form.controls.name.invalid && form.controls.name.touched) {
-        <span class="error">Name is required.</span>
-      }
+
+  @for (entry of entries.controls; track entry; let i = $index) {
+    <div class="entry" [formGroup]="entry">
+      <div class="entry-header">
+        <span class="entry-title">User {{ i + 1 }}</span>
+        @if (entries.length > 1) {
+          <button type="button" class="remove-button" (click)="removeEntry(i)">Remove</button>
+        }
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label [for]="'name-' + i">Name</label>
+          <input
+            [id]="'name-' + i"
+            type="text"
+            formControlName="name"
+            class="text-field"
+            [class.invalid]="entry.controls.name.invalid && entry.controls.name.touched"
+          />
+          @if (entry.controls.name.invalid && entry.controls.name.touched) {
+            <span class="error">Name is required.</span>
+          }
+        </div>
+        <div class="field">
+          <label [for]="'cpf-' + i">CPF</label>
+          <input
+            [id]="'cpf-' + i"
+            type="text"
+            formControlName="cpf"
+            class="text-field"
+            [class.invalid]="entry.controls.cpf.invalid && entry.controls.cpf.touched"
+          />
+          @if (entry.controls.cpf.invalid && entry.controls.cpf.touched) {
+            <span class="error">CPF is required.</span>
+          }
+        </div>
+        <div class="field">
+          <label [for]="'picture-' + i">Picture</label>
+          <input [id]="'picture-' + i" type="file" accept="image/*" (change)="onPictureSelected($event, i)" />
+          @if (entry.controls.picture.invalid && entry.controls.picture.touched) {
+            <span class="error">Picture is required.</span>
+          }
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <label for="cpf">CPF</label>
-      <input
-        id="cpf"
-        type="text"
-        formControlName="cpf"
-        class="text-field"
-        [class.invalid]="form.controls.cpf.invalid && form.controls.cpf.touched"
-      />
-      @if (form.controls.cpf.invalid && form.controls.cpf.touched) {
-        <span class="error">CPF is required.</span>
-      }
-    </div>
-    <div class="field">
-      <label for="picture">Picture</label>
-      <input id="picture" type="file" accept="image/*" (change)="onPictureSelected($event)" />
-      @if (form.controls.picture.invalid && form.controls.picture.touched) {
-        <span class="error">Picture is required.</span>
-      }
-    </div>
-  </div>
+  }
+
+  <button type="button" class="add-button" [disabled]="entries.length >= maxBatchSize" (click)="addEntry()">
+    Add another
+  </button>
+
   <footer class="footer">
     @if (errorMessage()) {
       <span class="error form-error">{{ errorMessage() }}</span>
