@@ -52,9 +52,11 @@
   </button>
 
   <footer class="footer">
-    @if (errorMessage()) {
+    @if (loading()) {
+      <span class="form-error">Loading...</span>
+    } @else if (errorMessage()) {
       <span class="error form-error">{{ errorMessage() }}</span>
     }
-    <button type="submit" class="button">Save</button>
+    <button type="submit" class="button" [disabled]="loading()">Save</button>
   </footer>
 </form>

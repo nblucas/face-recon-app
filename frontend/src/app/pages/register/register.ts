@@ -34,6 +34,7 @@ export class Register {
   protected readonly entries = new FormArray<EntryForm>([newEntryForm()]);
   protected readonly form = new FormGroup({ entries: this.entries });
 
+  protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected onPictureSelected(event: Event, index: number): void {
@@ -57,6 +58,7 @@ export class Register {
       return;
     }
 
+    this.loading.set(true);
     this.errorMessage.set(null);
 
     const batchEntries = this.entries.controls.map((entry) => {
@@ -70,6 +72,7 @@ export class Register {
         this.errorMessage.set(
           typeof err.error === 'string' ? err.error : 'Failed to register users. Please try again.',
         );
+        this.loading.set(false);
       },
     });
   }

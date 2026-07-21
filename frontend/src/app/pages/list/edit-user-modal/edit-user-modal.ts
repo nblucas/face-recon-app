@@ -21,6 +21,7 @@ export class EditUserModal {
     picture: new FormControl<File | null>(null),
   });
 
+  protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected onPictureSelected(event: Event): void {
@@ -41,6 +42,7 @@ export class EditUserModal {
       return;
     }
 
+    this.loading.set(true);
     this.errorMessage.set(null);
 
     this.userService.updateUser(this.user().id, trimmedName || null, picture).subscribe({
@@ -49,6 +51,7 @@ export class EditUserModal {
         this.errorMessage.set(
           typeof err.error === 'string' ? err.error : 'Failed to update user. Please try again.',
         );
+        this.loading.set(false);
       },
     });
   }

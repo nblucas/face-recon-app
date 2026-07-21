@@ -13,11 +13,13 @@
         </div>
       </div>
       <footer class="footer">
-        @if (errorMessage()) {
+        @if (loading()) {
+          <span class="form-error">Loading...</span>
+        } @else if (errorMessage()) {
           <span class="error form-error">{{ errorMessage() }}</span>
         }
         <button type="button" class="button" (click)="onCancel()">Cancel</button>
-        <button type="submit" class="button">Save</button>
+        <button type="submit" class="button" [disabled]="loading()">Save</button>
       </footer>
     </form>
   </div>
