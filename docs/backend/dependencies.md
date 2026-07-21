@@ -17,8 +17,9 @@ Maven dependencies decided so far for the Spring Boot backend. See [`../common/s
 ## Facial recognition
 
 - `ai.djl:api` — DJL core.
-- `org.bytedeco:javacv-platform` — OpenCV bindings (face detection), bundled with native libs for the build platform.
-- DJL inference engine (e.g. `ai.djl.onnxruntime:onnxruntime-engine` or `ai.djl.pytorch:pytorch-engine`) — **not decided yet**, depends on the pretrained face embedding model chosen.
+- `ai.djl.onnxruntime:onnxruntime-engine` — DJL's ONNX Runtime engine, used for both face detection (SCRFD, `det_10g.onnx`) and face embedding (ArcFace, `w600k_r50.onnx`), both from the InsightFace `buffalo_l` bundle.
+- `org.bytedeco:opencv` (classifiers `linux-x86_64` and `linux-arm64`, not `javacv-platform`) — used only for face alignment (`estimateAffinePartial2D` + `warpAffine`) before the embedding step. Not used for detection: `ai.djl:api`'s default `BufferedImageFactory` (backed by `javax.imageio.ImageIO`) already handles image loading without any native dependency, and detection runs through the ONNX Runtime engine like embedding does.
+- The `buffalo_l` model bundle (detection + embedding, ~350MB) is not a Maven artifact — it's downloaded and cached automatically by DJL at runtime (`Criteria.optModelUrls(...)`, cached under `~/.djl.ai/`), not committed to the repo and not requiring any manual setup step.
 
 ## Testing
 
