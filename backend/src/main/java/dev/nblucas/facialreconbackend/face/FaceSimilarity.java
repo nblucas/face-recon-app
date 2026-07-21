@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FaceSimilarity {
 
-    private static final float MATCH_THRESHOLD = 0.40f;
+    private static final float MATCH_THRESHOLD = 0.60f;
 
     public float cosineSimilarity(float[] a, float[] b) {
         float dotProduct = 0f;

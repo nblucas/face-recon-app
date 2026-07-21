@@ -1,6 +1,7 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
@@ -75,5 +76,15 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         this.userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(
+            path = "/identify",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<IdentifyUserResponse> identifyUser(@RequestPart("picture") MultipartFile picture) {
+        IdentifyUserResponse response = this.userService.identify(picture);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

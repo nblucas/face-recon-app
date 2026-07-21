@@ -17,6 +17,11 @@ export interface UserPageResponse {
   limit: number;
 }
 
+export interface IdentifyUserResponse {
+  identified: boolean;
+  user: UserResponse | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private readonly http = inject(HttpClient);
@@ -63,5 +68,12 @@ export class UserService {
 
   getUser(id: number): Observable<UserResponse> {
     return this.http.get<UserResponse>(`${this.baseUrl}/${id}`);
+  }
+
+  identify(picture: File): Observable<IdentifyUserResponse> {
+    const formData = new FormData();
+    formData.append('picture', picture);
+
+    return this.http.post<IdentifyUserResponse>(`${this.baseUrl}/identify`, formData);
   }
 }

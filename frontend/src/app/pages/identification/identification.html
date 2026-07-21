@@ -1,1 +1,44 @@
-<h1>Identification</h1>
+<div class="identification">
+  <h1>Identification</h1>
+
+  <div class="field">
+    <label for="picture">Picture</label>
+    <input id="picture" type="file" accept="image/*" (change)="onPictureSelected($event)" />
+  </div>
+
+  <footer class="footer">
+    @if (errorMessage()) {
+      <span class="error form-error">{{ errorMessage() }}</span>
+    }
+    <button type="button" class="button" [disabled]="!picture() || loading()" (click)="onSubmit()">
+      Identify
+    </button>
+  </footer>
+
+  @if (loading()) {
+    <p>Loading...</p>
+  }
+
+  @if (result(); as result) {
+    @if (result.identified && result.user; as user) {
+      <div class="card">
+        @if (pictureBroken()) {
+          <div class="avatar">{{ initialsOf(user.name) }}</div>
+        } @else {
+          <img
+            class="avatar-picture"
+            [src]="pictureUrl(user)"
+            [alt]="user.name"
+            (error)="onPictureError()"
+          />
+        }
+        <div class="info">
+          <span class="name">{{ user.name }}</span>
+          <span class="cpf">{{ formatCpf(user.cpf) }}</span>
+        </div>
+      </div>
+    } @else {
+      <p class="no-match">No matching user found.</p>
+    }
+  }
+</div>

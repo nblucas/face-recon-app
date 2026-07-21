@@ -37,3 +37,27 @@ Registers a single user. Multiple/batch registration (with threading) is a separ
 - `400 Bad Request`: used uniformly for every rejection reason: missing/blank fields, invalid CPF format, missing or non-image picture, no face detected, or duplicate CPF. These cases deliberately share one status code: CPF is sensitive, and a status code that distinctly signals "this CPF is already registered" would let CPFs be enumerated without even reading the response body. The specific reason is only available in the response body, for clients that are meant to read it.
 - `413 Payload Too Large`: picture exceeds the configured size limit.
 - `415 Unsupported Media Type`: `picture` part is not an image content type.
+
+## Identify user
+
+`POST /api/v1/users/identify`
+
+Given only a picture, finds the registered user whose face best matches it, if any. See [`../common/spec.md`](../common/spec.md) for the facial identification requirement and the detect/extract/compare/threshold steps.
+
+### Request
+
+`multipart/form-data` with a single part:
+
+- `picture`: image file, required.
+
+### Behavior
+
+1. Validate `picture` is a genuine image, same check as registration.
+2. Detect a face in the picture and extract its embedding — same pipeline and validations as registration (exactly one face required).
+3. Compare the extracted embedding against every registered user's stored embedding (fetched paginated, compared in parallel), by cosine similarity.
+4. If the highest similarity found is at or above the configured match threshold, that user is the identification result; otherwise, there is no match.
+
+### Responses
+
+- `200 OK`: always returned when the request itself is valid, whether or not a match was found. Body: `{"identified": boolean, "user": {...} | null}` — `user` is the matched user (same shape as the other user responses) when `identified` is `true`, `null` otherwise. A non-match is not treated as an error.
+- `400 Bad Request`: missing or non-image picture, or no face (or more than one face) detected — same validation as registration.
