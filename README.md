@@ -2,6 +2,14 @@
 
 Facial registration, identification and verification, with an Angular frontend and a Spring Boot backend.
 
+## Stack
+
+- **Frontend**: Angular 21, standalone components (`frontend/`).
+- **Backend**: Java 21 / Spring Boot, built with Maven (`backend/`).
+- **Database**: PostgreSQL, accessed via jOOQ, schema managed with Flyway migrations.
+- **Face recognition**: [DJL](https://djl.ai/) on the ONNX Runtime engine, using the InsightFace `buffalo_l` bundle — SCRFD for face detection, ArcFace for face embedding. The model bundle (~350MB) is downloaded and cached at runtime, not committed to the repo.
+- Pictures are stored on the filesystem; only a reference is kept in the database.
+
 ## Running with Docker
 
 Requires Docker Engine (or Docker Desktop, which bundles it) and Docker Compose V2 (the `docker compose` subcommand — not the older standalone `docker-compose` binary). No local Java, Maven, Node or Postgres needed: the build steps for both services run entirely inside their own images.
@@ -25,8 +33,15 @@ docker compose down -v
 
 ## Running without Docker
 
-See [`CLAUDE.md`](CLAUDE.md) for local development commands (backend and frontend run separately, against a locally installed Postgres).
+Requires a local PostgreSQL instance, with credentials matching `FR_USER`/`FR_PW`/`POSTGRES_DB` from `.env.example` (or your own `.env`).
 
-## Documentation
+**Backend** (from `backend/`):
+```bash
+./mvnw spring-boot:run
+```
 
-See [`docs/`](docs/) for architecture and subsystem-level documentation.
+**Frontend** (from `frontend/`), see [`CLAUDE.md`](CLAUDE.md) for the full command list:
+```bash
+npm install
+ng serve
+```
