@@ -49,4 +49,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleEmptyUpdate(EmptyUpdateException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
+
+    @ExceptionHandler(InvalidFaceCountException.class)
+    public ResponseEntity<String> handleInvalidFaceCount(InvalidFaceCountException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 }
