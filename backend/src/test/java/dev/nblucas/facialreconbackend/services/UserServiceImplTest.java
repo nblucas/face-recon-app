@@ -96,7 +96,7 @@ class UserServiceImplTest {
         TbUsersRecord updated = new TbUsersRecord(
                 1L, "John Smith", "52998224725", "placeholder", createdAt, updatedAt);
 
-        when(userRepository.update(1L, "John Smith", "placeholder")).thenReturn(updated);
+        when(userRepository.update(1L, "John Smith", "placeholder")).thenReturn(Optional.of(updated));
 
         UserResponse response = userService.update(1L, request, picture);
 
@@ -105,6 +105,17 @@ class UserServiceImplTest {
         inOrder.verify(userRepository).update(1L, "John Smith", "placeholder");
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenRecordVanishesBeforeUpdate() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        MultipartFile picture = picture();
+
+        when(userRepository.update(1L, "John Smith", "placeholder")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.update(1L, request, picture))
+                .isInstanceOf(UserNotFoundException.class);
     }
 
     @Test

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 import dev.nblucas.facialreconbackend.TestcontainersConfiguration;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -64,25 +65,26 @@ class UserRepositoryImplIntegrationTest {
     void shouldUpdateNameAndPicturePathAndBumpUpdatedAt() {
         TbUsersRecord created = userRepository.create("Alice Doe", "98765432100", "/pictures/alice.png");
 
-        TbUsersRecord updated = userRepository.update(
+        Optional<TbUsersRecord> updated = userRepository.update(
                 created.getCoSeqUser(), "Alice Smith", "/pictures/alice-smith.png");
 
-        assertThat(updated.getCoSeqUser()).isEqualTo(created.getCoSeqUser());
-        assertThat(updated.getName()).isEqualTo("Alice Smith");
-        assertThat(updated.getCpf()).isEqualTo("98765432100");
-        assertThat(updated.getPicturePath()).isEqualTo("/pictures/alice-smith.png");
-        assertThat(updated.getCreatedAt()).isEqualTo(created.getCreatedAt());
-        assertThat(updated.getUpdatedAt()).isAfterOrEqualTo(created.getUpdatedAt());
+        assertThat(updated).isPresent();
+        assertThat(updated.get().getCoSeqUser()).isEqualTo(created.getCoSeqUser());
+        assertThat(updated.get().getName()).isEqualTo("Alice Smith");
+        assertThat(updated.get().getCpf()).isEqualTo("98765432100");
+        assertThat(updated.get().getPicturePath()).isEqualTo("/pictures/alice-smith.png");
+        assertThat(updated.get().getCreatedAt()).isEqualTo(created.getCreatedAt());
+        assertThat(updated.get().getUpdatedAt()).isAfterOrEqualTo(created.getUpdatedAt());
     }
 
     @Test
-    void shouldReturnNullWhenUpdatingNonExistentId() {
+    void shouldReturnEmptyWhenUpdatingNonExistentId() {
         userRepository.create("Fabio Rocha", "66677788890", "/pictures/fabio.png");
         userRepository.create("Gisele Alves", "77788899901", "/pictures/gisele.png");
 
-        TbUsersRecord updated = userRepository.update(Long.MAX_VALUE, "Ghost", "/pictures/ghost.png");
+        Optional<TbUsersRecord> updated = userRepository.update(Long.MAX_VALUE, "Ghost", "/pictures/ghost.png");
 
-        assertThat(updated).isNull();
+        assertThat(updated).isEmpty();
     }
 
     @Test

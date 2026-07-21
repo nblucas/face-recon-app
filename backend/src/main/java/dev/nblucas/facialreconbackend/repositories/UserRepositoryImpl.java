@@ -43,7 +43,7 @@ public class UserRepositoryImpl implements UserRepository {
         return this.dsl.fetchCount(TB_USERS, condition) > 0;
     }
 
-    public TbUsersRecord update(Long id, String name, String picturePath) {
+    public Optional<TbUsersRecord> update(Long id, String name, String picturePath) {
         return this.dsl
                 .update(TB_USERS)
                 .set(TB_USERS.NAME, name)
@@ -51,7 +51,7 @@ public class UserRepositoryImpl implements UserRepository {
                 .set(TB_USERS.UPDATED_AT, OffsetDateTime.now())
                 .where(TB_USERS.CO_SEQ_USER.eq(id))
                 .returning()
-                .fetchOne();
+                .fetchOptional();
     }
 
     public List<TbUsersRecord> findAll(int offset, int limit) {

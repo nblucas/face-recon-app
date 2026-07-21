@@ -48,7 +48,8 @@ public class UserServiceImpl implements UserService {
         // Generate UUID for picture file name and add picture to filesystem
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
-        TbUsersRecord user = userRepository.update(id, request.name(), "placeholder");
+        TbUsersRecord user = userRepository.update(id, request.name(), "placeholder")
+                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
         return createUserResponse(user);
     }
 
