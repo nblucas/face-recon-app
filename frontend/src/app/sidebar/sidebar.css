@@ -1,23 +1,46 @@
 .sidebar {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  background-color: #fafafa;
+  border-right: 1px solid #e4e4e7;
 }
 
 .header {
-  padding: 1rem;
-  font-size: 1.25rem;
+  padding: 1.5rem 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #18181b;
+  border-bottom: 1px solid #e4e4e7;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  padding: 1rem 0.75rem;
 }
 
 .item {
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
   text-decoration: none;
-  color: inherit;
+  color: #52525b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.item:hover {
+  background-color: #f0f0f1;
+  color: #18181b;
+}
+
+.item.active {
+  background-color: #e4e4e7;
+  color: #18181b;
+  font-weight: 600;
 }

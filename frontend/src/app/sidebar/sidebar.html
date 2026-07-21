@@ -2,7 +2,7 @@
   <header class="header">{{ title }}</header>
   <nav class="nav">
     @for (item of items; track item.path) {
-      <a class="item" [routerLink]="item.path">{{ item.label }}</a>
+      <a class="item" [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
     }
   </nav>
 </div>
