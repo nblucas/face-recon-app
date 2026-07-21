@@ -10,7 +10,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 4rem 1fr 12rem 10rem;
+  grid-template-columns: 4rem 1fr 12rem 15rem;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0;
