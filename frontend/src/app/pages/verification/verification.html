@@ -1,1 +1,38 @@
-<h1>Verification</h1>
+<form class="verification" [formGroup]="form" (ngSubmit)="onSubmit()">
+  <h1>Verification</h1>
+  <div class="fields">
+    <div class="field">
+      <label for="cpf">CPF</label>
+      <input
+        id="cpf"
+        type="text"
+        formControlName="cpf"
+        class="text-field"
+        [class.invalid]="form.controls.cpf.invalid && form.controls.cpf.touched"
+      />
+      @if (form.controls.cpf.invalid && form.controls.cpf.touched) {
+        <span class="error">CPF is required.</span>
+      }
+    </div>
+    <div class="field">
+      <label for="picture">Picture</label>
+      <input id="picture" type="file" accept="image/*" (change)="onPictureSelected($event)" />
+      @if (form.controls.picture.invalid && form.controls.picture.touched) {
+        <span class="error">Picture is required.</span>
+      }
+    </div>
+  </div>
+
+  <footer class="footer">
+    @if (loading()) {
+      <span class="form-error">Loading...</span>
+    } @else if (errorMessage()) {
+      <span class="error form-error">{{ errorMessage() }}</span>
+    } @else if (matched() === true) {
+      <span class="matched form-error">Face matches the registered picture.</span>
+    } @else if (matched() === false) {
+      <span class="not-matched form-error">Face does not match the registered picture.</span>
+    }
+    <button type="submit" class="button" [disabled]="loading()">Verify</button>
+  </footer>
+</form>
