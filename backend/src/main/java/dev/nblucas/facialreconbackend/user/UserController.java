@@ -6,6 +6,8 @@ import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserResponse;
+import dev.nblucas.facialreconbackend.user.dto.VerifyUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.VerifyUserResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -85,6 +87,19 @@ public class UserController {
     )
     public ResponseEntity<IdentifyUserResponse> identifyUser(@RequestPart("picture") MultipartFile picture) {
         IdentifyUserResponse response = this.userService.identify(picture);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping(
+            path = "/verify",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<VerifyUserResponse> verifyUser(
+            @Valid @RequestPart VerifyUserRequest request,
+            @RequestPart("picture") MultipartFile picture
+    ) {
+        VerifyUserResponse response = this.userService.verify(request.cpf(), picture);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

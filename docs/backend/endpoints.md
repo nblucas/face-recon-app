@@ -61,3 +61,35 @@ Given only a picture, finds the registered user whose face best matches it, if a
 
 - `200 OK`: always returned when the request itself is valid, whether or not a match was found. Body: `{"identified": boolean, "user": {...} | null}` — `user` is the matched user (same shape as the other user responses) when `identified` is `true`, `null` otherwise. A non-match is not treated as an error.
 - `400 Bad Request`: missing or non-image picture, or no face (or more than one face) detected — same validation as registration.
+
+## Verify user
+
+`POST /api/v1/users/verify`
+
+Given a CPF and a picture, checks whether the picture's face matches the registered user's stored embedding. See [`../common/spec.md`](../common/spec.md) for the facial verification requirement and the detect/extract/compare/threshold steps.
+
+### Request
+
+`multipart/form-data` with two parts:
+
+- `request` (JSON):
+  ```json
+  {
+    "cpf": "string, required"
+  }
+  ```
+- `picture`: image file, required.
+
+### Behavior
+
+1. Validate `cpf` format (required, 11 digits, valid check digits).
+2. Look up the registered user with that CPF. If none exists, the request is rejected — unlike identification, a non-match on an unknown CPF is treated as an error, since the caller is asserting a specific identity.
+3. Validate `picture` is a genuine image, same check as registration.
+4. Detect a face in the picture and extract its embedding — same pipeline and validations as registration (exactly one face required).
+5. Compare the extracted embedding against the looked-up user's stored embedding, by cosine similarity, against the same match threshold used by identification.
+
+### Responses
+
+- `200 OK`: request valid, comparison performed. Body: `{"matched": boolean}`.
+- `400 Bad Request`: missing/invalid CPF format, missing or non-image picture, or no face (or more than one face) detected.
+- `404 Not Found`: no registered user has the given CPF.
