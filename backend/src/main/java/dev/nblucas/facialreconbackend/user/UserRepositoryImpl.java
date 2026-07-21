@@ -4,6 +4,7 @@ import dev.nblucas.facialreconbackend.user.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +18,7 @@ import static dev.nblucas.facialreconbackend.jooq.Tables.TB_USERS;
 public class UserRepositoryImpl implements UserRepository {
     private final DSLContext dsl;
 
+    @Autowired
     public UserRepositoryImpl(DSLContext dsl) {
         this.dsl = dsl;
     }

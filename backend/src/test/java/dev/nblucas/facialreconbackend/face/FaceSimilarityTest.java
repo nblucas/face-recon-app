@@ -40,16 +40,16 @@ class FaceSimilarityTest {
 
     @Test
     void shouldConsiderMatchWhenSimilarityAboveThreshold() {
-        assertThat(faceSimilarity.isMatch(0.41f)).isTrue();
+        assertThat(faceSimilarity.isMatch(0.61f)).isTrue();
     }
 
     @Test
     void shouldConsiderMatchWhenSimilarityEqualsThreshold() {
-        assertThat(faceSimilarity.isMatch(0.40f)).isTrue();
+        assertThat(faceSimilarity.isMatch(0.60f)).isTrue();
     }
 
     @Test
     void shouldNotConsiderMatchWhenSimilarityBelowThreshold() {
-        assertThat(faceSimilarity.isMatch(0.39f)).isFalse();
+        assertThat(faceSimilarity.isMatch(0.59f)).isFalse();
     }
 }

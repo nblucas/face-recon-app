@@ -3,6 +3,7 @@ package dev.nblucas.facialreconbackend.user;
 import dev.nblucas.facialreconbackend.face.FaceSimilarity;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ class UserIdentifier {
     private final FaceSimilarity faceSimilarity;
     private final ExecutorService executor;
 
+    @Autowired
     UserIdentifier(UserRepository userRepository, FaceSimilarity faceSimilarity) {
         this.userRepository = userRepository;
         this.faceSimilarity = faceSimilarity;

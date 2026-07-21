@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.face;
 
 import dev.nblucas.facialreconbackend.common.exceptions.InvalidPictureException;
 import org.bytedeco.opencv.opencv_core.Mat;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +19,7 @@ public class FaceEmbeddingService {
     private final FaceAligner faceAligner;
     private final FaceEmbedder faceEmbedder;
 
+    @Autowired
     public FaceEmbeddingService(
             FaceDetector faceDetector, FaceValidator faceValidator, FaceAligner faceAligner, FaceEmbedder faceEmbedder
     ) {
