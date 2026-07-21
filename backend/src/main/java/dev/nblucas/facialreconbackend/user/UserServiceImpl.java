@@ -1,6 +1,7 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
+import dev.nblucas.facialreconbackend.face.FaceSimilarity;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
 import dev.nblucas.facialreconbackend.common.utils.EmbeddingCodec;
@@ -10,6 +11,7 @@ import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserResponse;
+import dev.nblucas.facialreconbackend.user.dto.VerifyUserResponse;
 import dev.nblucas.facialreconbackend.user.exceptions.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -26,6 +28,7 @@ public class UserServiceImpl implements UserService {
     PictureStorageService pictureStorageService;
     FaceEmbeddingService faceEmbeddingService;
     UserIdentifier userIdentifier;
+    FaceSimilarity faceSimilarity;
 
     @Autowired
     public UserServiceImpl(
@@ -33,13 +36,15 @@ public class UserServiceImpl implements UserService {
             UserValidator userValidator,
             PictureStorageService pictureStorageService,
             FaceEmbeddingService faceEmbeddingService,
-            UserIdentifier userIdentifier
+            UserIdentifier userIdentifier,
+            FaceSimilarity faceSimilarity
     ) {
         this.userRepository = userRepository;
         this.userValidator = userValidator;
         this.pictureStorageService = pictureStorageService;
         this.faceEmbeddingService = faceEmbeddingService;
         this.userIdentifier = userIdentifier;
+        this.faceSimilarity = faceSimilarity;
     }
 
     public UserResponse create(CreateUserRequest request, MultipartFile picture) {
@@ -161,6 +166,19 @@ public class UserServiceImpl implements UserService {
         return userIdentifier.findBestMatch(queryEmbedding)
                 .map(user -> new IdentifyUserResponse(true, createUserResponse(user)))
                 .orElseGet(() -> new IdentifyUserResponse(false, null));
+    }
+
+    public VerifyUserResponse verify(String cpf, MultipartFile picture) {
+        this.userValidator.validateVerification(cpf, picture);
+
+        TbUsersRecord user = userRepository.findByCpf(cpf)
+                .orElseThrow(() -> new UserNotFoundException("User with given CPF not found."));
+
+        float[] queryEmbedding = faceEmbeddingService.extractEmbedding(picture);
+        float[] storedEmbedding = EmbeddingCodec.unbox(user.getEmbedding());
+        float similarity = faceSimilarity.cosineSimilarity(queryEmbedding, storedEmbedding);
+
+        return new VerifyUserResponse(faceSimilarity.isMatch(similarity));
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {

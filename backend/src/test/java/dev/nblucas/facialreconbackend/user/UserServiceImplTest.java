@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.common.exceptions.InvalidFaceCountException;
 import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
+import dev.nblucas.facialreconbackend.face.FaceSimilarity;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
@@ -10,6 +11,7 @@ import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserResponse;
+import dev.nblucas.facialreconbackend.user.dto.VerifyUserResponse;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.user.exceptions.UserNotFoundException;
@@ -56,6 +58,9 @@ class UserServiceImplTest {
     @Mock
     private UserIdentifier userIdentifier;
 
+    @Mock
+    private FaceSimilarity faceSimilarity;
+
     private UserServiceImpl userService;
 
     private static final float[] EXTRACTED_EMBEDDING = {0.1f, 0.2f};
@@ -64,7 +69,8 @@ class UserServiceImplTest {
     @BeforeEach
     void setUp() {
         userService = new UserServiceImpl(
-                userRepository, userValidator, pictureStorageService, faceEmbeddingService, userIdentifier);
+                userRepository, userValidator, pictureStorageService, faceEmbeddingService, userIdentifier,
+                faceSimilarity);
     }
 
     @Test
@@ -523,6 +529,96 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.identify(picture)).isSameAs(extractionFailure);
 
         verifyNoInteractions(userIdentifier);
+    }
+
+    @Test
+    void shouldValidateThenVerifyUserAndReturnMatchedResponse() {
+        String cpf = "52998224725";
+        MultipartFile picture = picture();
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", cpf, "generated.png",
+                OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
+
+        when(userRepository.findByCpf(cpf)).thenReturn(Optional.of(user));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
+        when(faceSimilarity.cosineSimilarity(EXTRACTED_EMBEDDING, EXTRACTED_EMBEDDING)).thenReturn(0.9f);
+        when(faceSimilarity.isMatch(0.9f)).thenReturn(true);
+
+        VerifyUserResponse response = userService.verify(cpf, picture);
+
+        InOrder inOrder = inOrder(userValidator, userRepository, faceEmbeddingService, faceSimilarity);
+        inOrder.verify(userValidator).validateVerification(cpf, picture);
+        inOrder.verify(userRepository).findByCpf(cpf);
+        inOrder.verify(faceEmbeddingService).extractEmbedding(picture);
+        inOrder.verify(faceSimilarity).cosineSimilarity(EXTRACTED_EMBEDDING, EXTRACTED_EMBEDDING);
+
+        assertThat(response).isEqualTo(new VerifyUserResponse(true));
+    }
+
+    @Test
+    void shouldReturnNotMatchedResponseWhenSimilarityIsBelowThreshold() {
+        String cpf = "52998224725";
+        MultipartFile picture = picture();
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", cpf, "generated.png",
+                OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
+
+        when(userRepository.findByCpf(cpf)).thenReturn(Optional.of(user));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
+        when(faceSimilarity.cosineSimilarity(EXTRACTED_EMBEDDING, EXTRACTED_EMBEDDING)).thenReturn(0.1f);
+        when(faceSimilarity.isMatch(0.1f)).thenReturn(false);
+
+        VerifyUserResponse response = userService.verify(cpf, picture);
+
+        assertThat(response).isEqualTo(new VerifyUserResponse(false));
+    }
+
+    @Test
+    void shouldNotVerifyWhenValidationFails() {
+        String cpf = "52998224725";
+        MultipartFile picture = picture();
+
+        doThrow(new UserNotFoundException("User with given CPF not found."))
+                .when(userValidator).validateVerification(cpf, picture);
+
+        assertThatThrownBy(() -> userService.verify(cpf, picture))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verifyNoInteractions(userRepository);
+        verifyNoInteractions(faceEmbeddingService);
+        verifyNoInteractions(faceSimilarity);
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenUserVanishesBeforeVerificationLookup() {
+        String cpf = "52998224725";
+        MultipartFile picture = picture();
+
+        when(userRepository.findByCpf(cpf)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.verify(cpf, picture))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verifyNoInteractions(faceEmbeddingService);
+        verifyNoInteractions(faceSimilarity);
+    }
+
+    @Test
+    void shouldNotVerifyWhenFaceExtractionFails() {
+        String cpf = "52998224725";
+        MultipartFile picture = picture();
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", cpf, "generated.png",
+                OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
+        InvalidFaceCountException extractionFailure =
+                new InvalidFaceCountException("No face detected in the picture given.");
+
+        when(userRepository.findByCpf(cpf)).thenReturn(Optional.of(user));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenThrow(extractionFailure);
+
+        assertThatThrownBy(() -> userService.verify(cpf, picture)).isSameAs(extractionFailure);
+
+        verifyNoInteractions(faceSimilarity);
     }
 
     private MultipartFile picture() {
