@@ -30,6 +30,11 @@ class FaceEmbedder {
         }
     }
 
+    // Triggers model loading ahead of the first real request. See FaceModelWarmup.
+    void warmUp() {
+        model();
+    }
+
     // Loads the embedding model on first use only, so Spring context tests never trigger a network download.
     private synchronized ZooModel<NDList, NDList> model() {
         if (model == null) {
