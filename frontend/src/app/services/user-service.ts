@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 
 export interface UserResponse {
   id: number;
@@ -29,6 +29,26 @@ export class UserService {
     formData.append('picture', picture);
 
     return this.http.post<UserResponse>(this.baseUrl, formData);
+  }
+
+  updateUser(id: number, name: string | null, picture: File | null): Observable<UserResponse> {
+    if (!name && !picture) {
+      return throwError(() => new Error('At least one of name or picture must be given.'));
+    }
+
+    const requestBody: { name?: string } = {};
+    if (name) {
+      requestBody.name = name;
+    }
+    const request = new Blob([JSON.stringify(requestBody)], { type: 'application/json' });
+
+    const formData = new FormData();
+    formData.append('request', request);
+    if (picture) {
+      formData.append('picture', picture);
+    }
+
+    return this.http.put<UserResponse>(`${this.baseUrl}/${id}`, formData);
   }
 
   listUsers(offset: number, limit: number): Observable<UserPageResponse> {
