@@ -8,15 +8,12 @@ import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPictureException;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
+import dev.nblucas.facialreconbackend.utils.ImageFormatDetector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import java.io.IOException;
-import java.util.Iterator;
 
 @Component
 public class UserValidator {
@@ -107,14 +104,9 @@ public class UserValidator {
     }
 
     private void isPicturePngOrJpeg(MultipartFile picture) {
-        try (ImageInputStream imageInputStream = ImageIO.createImageInputStream(picture.getInputStream())) {
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
-
-            if (!readers.hasNext()) {
-                throw new InvalidPictureException("File given is not a valid image.");
-            }
-
-            String formatName = readers.next().getFormatName().toUpperCase();
+        try {
+            String formatName = ImageFormatDetector.detect(picture.getInputStream())
+                    .orElseThrow(() -> new InvalidPictureException("File given is not a valid image."));
 
             if (!formatName.equals("PNG") && !formatName.equals("JPEG")) {
                 throw new InvalidPictureException("File given must be PNG or JPEG.");
