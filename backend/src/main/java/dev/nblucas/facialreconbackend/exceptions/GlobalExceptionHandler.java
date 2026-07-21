@@ -44,4 +44,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handlePictureStorage(PictureStorageException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
     }
+
+    @ExceptionHandler(EmptyUpdateException.class)
+    public ResponseEntity<String> handleEmptyUpdate(EmptyUpdateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 }

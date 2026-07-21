@@ -162,6 +162,24 @@ class UserServiceImplTest {
     }
 
     @Test
+    void shouldReuseExistingNameWhenNoNewNameGiven() {
+        UpdateUserRequest request = new UpdateUserRequest(null);
+        MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+        TbUsersRecord updated = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Doe", "new.png")).thenReturn(Optional.of(updated));
+
+        userService.update(1L, request, picture);
+
+        verify(userRepository).update(1L, "John Doe", "new.png");
+    }
+
+    @Test
     void shouldThrowUserNotFoundWhenUserVanishesBeforeUpdateLookup() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
 

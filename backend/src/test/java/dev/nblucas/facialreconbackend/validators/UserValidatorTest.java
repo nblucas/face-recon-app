@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.validators;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
+import dev.nblucas.facialreconbackend.exceptions.EmptyUpdateException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
@@ -218,6 +219,28 @@ class UserValidatorTest {
     }
 
     @Test
+    void shouldNotThrowWhenUpdateHasNoName() {
+        UpdateUserRequest request = new UpdateUserRequest(null);
+        MultipartFile picture = validPicture();
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatCode(() -> userValidator.validateUpdate(1L, request, picture))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowEmptyUpdateExceptionWhenNeitherNameNorPictureGiven() {
+        UpdateUserRequest request = new UpdateUserRequest(null);
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> userValidator.validateUpdate(1L, request, null))
+                .isInstanceOf(EmptyUpdateException.class)
+                .hasMessage("At least one of name or picture must be given.");
+    }
+
+    @Test
     void shouldThrowUserNotFoundExceptionWhenIdDoesNotExistOnUpdate() {
         UpdateUserRequest request = new UpdateUserRequest("John Doe");
         MultipartFile picture = validPicture();
@@ -230,13 +253,12 @@ class UserValidatorTest {
     }
 
     @ParameterizedTest(name = "[{index}] name={0}")
-    @NullSource
     @ValueSource(strings = {
             "",
             "  ",
             "         "
     })
-    void shouldThrowInvalidNameExceptionWhenNameIsEmptyOrNullOnUpdate(String name) {
+    void shouldThrowInvalidNameExceptionWhenNameIsBlankOnUpdate(String name) {
         UpdateUserRequest request = new UpdateUserRequest(name);
         MultipartFile picture = validPicture();
 

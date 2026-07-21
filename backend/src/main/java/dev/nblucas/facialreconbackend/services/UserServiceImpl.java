@@ -63,13 +63,14 @@ public class UserServiceImpl implements UserService {
         TbUsersRecord existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
 
+        String name = resolveName(request, existingUser);
         String oldPicturePath = existingUser.getPicturePath();
         String picturePath = resolvePicturePath(picture, existingUser);
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
 
         try {
-            TbUsersRecord user = userRepository.update(id, request.name(), picturePath)
+            TbUsersRecord user = userRepository.update(id, name, picturePath)
                     .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
 
             if (picture != null) {
@@ -83,6 +84,10 @@ public class UserServiceImpl implements UserService {
             }
             throw updateException;
         }
+    }
+
+    private String resolveName(UpdateUserRequest request, TbUsersRecord existingUser) {
+        return request.name() != null ? request.name() : existingUser.getName();
     }
 
     private String resolvePicturePath(MultipartFile picture, TbUsersRecord existingUser) {

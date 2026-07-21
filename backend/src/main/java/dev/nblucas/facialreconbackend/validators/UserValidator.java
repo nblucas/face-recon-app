@@ -2,6 +2,7 @@ package dev.nblucas.facialreconbackend.validators;
 
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
+import dev.nblucas.facialreconbackend.exceptions.EmptyUpdateException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
@@ -34,7 +35,14 @@ public class UserValidator {
 
     public void validateUpdate(Long id, UpdateUserRequest request, MultipartFile picture) {
         validateUserExists(id);
-        validateName(request.name());
+
+        if (request.name() == null && picture == null) {
+            throw new EmptyUpdateException("At least one of name or picture must be given.");
+        }
+
+        if (request.name() != null) {
+            validateName(request.name());
+        }
         if (picture != null) {
             validatePicture(picture);
         }
