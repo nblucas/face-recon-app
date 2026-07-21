@@ -26,6 +26,16 @@ export interface VerifyUserResponse {
   matched: boolean;
 }
 
+export interface CreateUsersBatchEntry {
+  name: string;
+  cpf: string;
+  picture: File;
+}
+
+export interface CreateUsersBatchResponse {
+  users: UserResponse[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private readonly http = inject(HttpClient);
@@ -90,4 +100,23 @@ export class UserService {
 
     return this.http.post<VerifyUserResponse>(`${this.baseUrl}/verify`, formData);
   }
+
+  createUsersBatch(entries: CreateUsersBatchEntry[]): Observable<CreateUsersBatchResponse> {
+    const users = entries.map(({ name, cpf }, index) => ({ clientId: String(index), name, cpf }));
+    const request = new Blob([JSON.stringify({ users })], { type: 'application/json' });
+
+    const formData = new FormData();
+    formData.append('request', request);
+    entries.forEach(({ picture }, index) => {
+      const renamedPicture = new File([picture], `${index}${fileExtension(picture.name)}`, { type: picture.type });
+      formData.append('pictures', renamedPicture);
+    });
+
+    return this.http.post<CreateUsersBatchResponse>(`${this.baseUrl}/batch`, formData);
+  }
+}
+
+function fileExtension(filename: string): string {
+  const dotIndex = filename.lastIndexOf('.');
+  return dotIndex >= 0 ? filename.slice(dotIndex) : '';
 }
