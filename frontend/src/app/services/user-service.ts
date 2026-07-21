@@ -41,16 +41,6 @@ export class UserService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/v1/users';
 
-  createUser(name: string, cpf: string, picture: File): Observable<UserResponse> {
-    const request = new Blob([JSON.stringify({ name, cpf })], { type: 'application/json' });
-
-    const formData = new FormData();
-    formData.append('request', request);
-    formData.append('picture', picture);
-
-    return this.http.post<UserResponse>(this.baseUrl, formData);
-  }
-
   updateUser(id: number, name: string | null, picture: File | null): Observable<UserResponse> {
     if (!name && !picture) {
       return throwError(() => new Error('At least one of name or picture must be given.'));
