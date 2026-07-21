@@ -13,4 +13,5 @@ public interface UserService {
     public UserPageResponse list(int offset, int limit);
     public UserPictureResponse getPicture(Long id);
     public void delete(Long id);
+    public UserResponse get(Long id);
 }

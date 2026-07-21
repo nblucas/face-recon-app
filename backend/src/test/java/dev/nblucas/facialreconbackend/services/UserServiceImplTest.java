@@ -383,6 +383,26 @@ class UserServiceImplTest {
     }
 
     @Test
+    void shouldGetUserAndReturnResponse() {
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        UserResponse response = userService.get(1L);
+
+        assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", user.getCreatedAt()));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenGettingUnknownId() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.get(1L))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
     void shouldDeleteUserAndItsPicture() {
         TbUsersRecord existingUser = new TbUsersRecord(
                 1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());

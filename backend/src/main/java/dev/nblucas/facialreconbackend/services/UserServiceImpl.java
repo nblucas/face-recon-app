@@ -136,6 +136,12 @@ public class UserServiceImpl implements UserService {
         deletePictureBestEffort(user.getPicturePath());
     }
 
+    public UserResponse get(Long id) {
+        TbUsersRecord user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+        return createUserResponse(user);
+    }
+
     private UserResponse createUserResponse(TbUsersRecord user) {
         return new UserResponse(user.getCoSeqUser(), user.getName(), user.getCpf(), user.getCreatedAt());
     }

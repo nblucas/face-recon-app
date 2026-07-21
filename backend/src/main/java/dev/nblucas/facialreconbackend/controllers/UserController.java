@@ -60,6 +60,12 @@ public class UserController {
         return new ResponseEntity<>(page, HttpStatus.OK);
     }
 
+    @GetMapping(path = "/{id}")
+    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+        UserResponse user = this.userService.get(id);
+        return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
     @GetMapping(path = "/{id}/picture")
     public ResponseEntity<byte[]> getUserPicture(@PathVariable Long id) {
         UserPictureResponse picture = this.userService.getPicture(id);
