@@ -28,7 +28,7 @@
             />
           }
           <span class="name">{{ user.name }}</span>
-          <span class="cpf">{{ user.cpf }}</span>
+          <span class="cpf">{{ formatCpf(user.cpf) }}</span>
           <span class="actions">
             <button type="button" class="action-button" (click)="onEdit(user)">Edit</button>
             <button type="button" class="action-button delete" (click)="onDelete(user)">

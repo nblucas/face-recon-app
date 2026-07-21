@@ -62,6 +62,10 @@ export class List {
     this.brokenPictureIds.update((ids) => new Set(ids).add(user.id));
   }
 
+  protected formatCpf(cpf: string): string {
+    return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+  }
+
   protected initialsOf(name: string): string {
     return name
       .trim()
