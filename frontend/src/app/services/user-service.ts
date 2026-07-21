@@ -22,6 +22,10 @@ export interface IdentifyUserResponse {
   user: UserResponse | null;
 }
 
+export interface VerifyUserResponse {
+  matched: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private readonly http = inject(HttpClient);
@@ -75,5 +79,15 @@ export class UserService {
     formData.append('picture', picture);
 
     return this.http.post<IdentifyUserResponse>(`${this.baseUrl}/identify`, formData);
+  }
+
+  verify(cpf: string, picture: File): Observable<VerifyUserResponse> {
+    const request = new Blob([JSON.stringify({ cpf })], { type: 'application/json' });
+
+    const formData = new FormData();
+    formData.append('request', request);
+    formData.append('picture', picture);
+
+    return this.http.post<VerifyUserResponse>(`${this.baseUrl}/verify`, formData);
   }
 }
