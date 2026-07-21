@@ -1,9 +1,9 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserResponse, UserService } from '../../services/user-service';
-import { EditUserModal } from '../list/edit-user-modal/edit-user-modal';
-import { formatCpf, initialsOf } from '../../utils/user-display';
+import { UserResponse, UserService } from '@app/services/user-service';
+import { EditUserModal } from '@app/pages/list/edit-user-modal/edit-user-modal';
+import { formatCpf, initialsOf } from '@app/utils/user-display';
 
 @Component({
   selector: 'app-details',

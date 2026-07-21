@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserService } from '../../services/user-service';
+import { UserService } from '@app/services/user-service';
 
 const MAX_BATCH_SIZE = 8;
 

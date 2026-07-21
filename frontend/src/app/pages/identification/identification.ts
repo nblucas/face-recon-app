@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { IdentifyUserResponse, UserResponse, UserService } from '../../services/user-service';
-import { formatCpf, initialsOf } from '../../utils/user-display';
+import { IdentifyUserResponse, UserResponse, UserService } from '@app/services/user-service';
+import { formatCpf, initialsOf } from '@app/utils/user-display';
 
 @Component({
   selector: 'app-identification',

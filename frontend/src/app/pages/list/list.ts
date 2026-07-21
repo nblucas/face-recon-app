@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserResponse, UserService } from '../../services/user-service';
+import { UserResponse, UserService } from '@app/services/user-service';
 import { EditUserModal } from './edit-user-modal/edit-user-modal';
-import { formatCpf, initialsOf } from '../../utils/user-display';
+import { formatCpf, initialsOf } from '@app/utils/user-display';
 
 const PAGE_LIMIT = 20;
 

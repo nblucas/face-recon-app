@@ -1,7 +1,7 @@
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserResponse, UserService } from '../../../services/user-service';
+import { UserResponse, UserService } from '@app/services/user-service';
 
 @Component({
   selector: 'app-edit-user-modal',
