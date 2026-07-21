@@ -4,6 +4,7 @@ import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
@@ -23,18 +24,21 @@ public class UserServiceImpl implements UserService {
     UserValidator userValidator;
     PictureStorageService pictureStorageService;
     FaceEmbeddingService faceEmbeddingService;
+    UserIdentifier userIdentifier;
 
     @Autowired
     public UserServiceImpl(
             UserRepository userRepository,
             UserValidator userValidator,
             PictureStorageService pictureStorageService,
-            FaceEmbeddingService faceEmbeddingService
+            FaceEmbeddingService faceEmbeddingService,
+            UserIdentifier userIdentifier
     ) {
         this.userRepository = userRepository;
         this.userValidator = userValidator;
         this.pictureStorageService = pictureStorageService;
         this.faceEmbeddingService = faceEmbeddingService;
+        this.userIdentifier = userIdentifier;
     }
 
     public UserResponse create(CreateUserRequest request, MultipartFile picture) {
@@ -155,6 +159,15 @@ public class UserServiceImpl implements UserService {
         TbUsersRecord user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
         return createUserResponse(user);
+    }
+
+    public IdentifyUserResponse identify(MultipartFile picture) {
+        this.userValidator.validateIdentification(picture);
+        float[] queryEmbedding = faceEmbeddingService.extractEmbedding(picture);
+
+        return userIdentifier.findBestMatch(queryEmbedding)
+                .map(user -> new IdentifyUserResponse(true, createUserResponse(user)))
+                .orElseGet(() -> new IdentifyUserResponse(false, null));
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {

@@ -5,6 +5,7 @@ import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
@@ -52,6 +53,9 @@ class UserServiceImplTest {
     @Mock
     private FaceEmbeddingService faceEmbeddingService;
 
+    @Mock
+    private UserIdentifier userIdentifier;
+
     private UserServiceImpl userService;
 
     private static final float[] EXTRACTED_EMBEDDING = {0.1f, 0.2f};
@@ -59,7 +63,8 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, userValidator, pictureStorageService, faceEmbeddingService);
+        userService = new UserServiceImpl(
+                userRepository, userValidator, pictureStorageService, faceEmbeddingService, userIdentifier);
     }
 
     @Test
@@ -477,6 +482,47 @@ class UserServiceImplTest {
         doThrow(new RuntimeException("disk error")).when(pictureStorageService).delete("old.png");
 
         assertThatCode(() -> userService.delete(1L)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldValidateThenIdentifyUserAndReturnMatchedResponse() {
+        MultipartFile picture = picture();
+        TbUsersRecord matchedUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "generated.png",
+                OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
+
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
+        when(userIdentifier.findBestMatch(EXTRACTED_EMBEDDING)).thenReturn(Optional.of(matchedUser));
+
+        IdentifyUserResponse response = userService.identify(picture);
+
+        assertThat(response.identified()).isTrue();
+        assertThat(response.user().id()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldReturnNotIdentifiedResponseWhenNoMatchIsFound() {
+        MultipartFile picture = picture();
+
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
+        when(userIdentifier.findBestMatch(EXTRACTED_EMBEDDING)).thenReturn(Optional.empty());
+
+        IdentifyUserResponse response = userService.identify(picture);
+
+        assertThat(response).isEqualTo(new IdentifyUserResponse(false, null));
+    }
+
+    @Test
+    void shouldNotIdentifyWhenFaceExtractionFails() {
+        MultipartFile picture = picture();
+        InvalidFaceCountException extractionFailure =
+                new InvalidFaceCountException("No face detected in the picture given.");
+
+        when(faceEmbeddingService.extractEmbedding(picture)).thenThrow(extractionFailure);
+
+        assertThatThrownBy(() -> userService.identify(picture)).isSameAs(extractionFailure);
+
+        verifyNoInteractions(userIdentifier);
     }
 
     private MultipartFile picture() {

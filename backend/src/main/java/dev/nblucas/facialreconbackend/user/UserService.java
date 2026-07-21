@@ -1,6 +1,7 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
 import dev.nblucas.facialreconbackend.user.dto.UserPictureResponse;
@@ -14,4 +15,5 @@ public interface UserService {
     public UserPictureResponse getPicture(Long id);
     public void delete(Long id);
     public UserResponse get(Long id);
+    public IdentifyUserResponse identify(MultipartFile picture);
 }
