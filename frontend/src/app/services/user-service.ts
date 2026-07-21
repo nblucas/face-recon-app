@@ -59,4 +59,8 @@ export class UserService {
   deleteUser(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  getUser(id: number): Observable<UserResponse> {
+    return this.http.get<UserResponse>(`${this.baseUrl}/${id}`);
+  }
 }
