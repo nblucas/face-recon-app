@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -70,6 +71,36 @@ class UserServiceImplTest {
         inOrder.verify(userRepository).create("John Doe", "52998224725", "generated.png");
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", createdAt));
+    }
+
+    @Test
+    void shouldDeleteStoredPictureWhenRepositoryCreateFails() {
+        CreateUserRequest request = new CreateUserRequest("John Doe", "52998224725");
+        MultipartFile picture = picture();
+        RuntimeException createFailure = new RuntimeException("duplicate key");
+
+        when(pictureStorageService.store(picture)).thenReturn("generated.png");
+        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenThrow(createFailure);
+
+        assertThatThrownBy(() -> userService.create(request, picture)).isSameAs(createFailure);
+
+        verify(pictureStorageService).delete("generated.png");
+    }
+
+    @Test
+    void shouldSuppressCleanupFailureAndKeepOriginalExceptionWhenBothFail() {
+        CreateUserRequest request = new CreateUserRequest("John Doe", "52998224725");
+        MultipartFile picture = picture();
+        RuntimeException createFailure = new RuntimeException("duplicate key");
+        RuntimeException deleteFailure = new RuntimeException("disk error");
+
+        when(pictureStorageService.store(picture)).thenReturn("generated.png");
+        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenThrow(createFailure);
+        doThrow(deleteFailure).when(pictureStorageService).delete("generated.png");
+
+        assertThatThrownBy(() -> userService.create(request, picture)).isSameAs(createFailure);
+
+        assertThat(createFailure.getSuppressed()).containsExactly(deleteFailure);
     }
 
     @Test

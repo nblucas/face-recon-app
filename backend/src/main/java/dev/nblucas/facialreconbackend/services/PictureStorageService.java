@@ -48,6 +48,14 @@ public class PictureStorageService {
         }
     }
 
+    public void delete(String picturePath) {
+        try {
+            Files.deleteIfExists(picturesDir.resolve(picturePath));
+        } catch (IOException e) {
+            throw new PictureStorageException("Could not delete picture file.");
+        }
+    }
+
     private String detectExtension(MultipartFile picture) {
         try {
             String formatName = ImageFormatDetector.detect(picture.getInputStream())

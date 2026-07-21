@@ -39,8 +39,22 @@ public class UserServiceImpl implements UserService {
         String picturePath = this.pictureStorageService.store(picture);
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
-        TbUsersRecord user = userRepository.create(request.name(), request.cpf(), picturePath);
-        return createUserResponse(user);
+
+        try {
+            TbUsersRecord user = userRepository.create(request.name(), request.cpf(), picturePath);
+            return createUserResponse(user);
+        } catch (RuntimeException createException) {
+            deleteOrphanedPicture(picturePath, createException);
+            throw createException;
+        }
+    }
+
+    private void deleteOrphanedPicture(String picturePath, RuntimeException createException) {
+        try {
+            pictureStorageService.delete(picturePath);
+        } catch (RuntimeException deleteException) {
+            createException.addSuppressed(deleteException);
+        }
     }
 
     public UserResponse update(Long id, UpdateUserRequest request, MultipartFile picture) {

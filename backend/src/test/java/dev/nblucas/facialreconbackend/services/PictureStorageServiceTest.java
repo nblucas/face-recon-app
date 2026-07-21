@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PictureStorageServiceTest {
@@ -63,6 +64,23 @@ class PictureStorageServiceTest {
 
         assertThatThrownBy(() -> service.load("does-not-exist.png"))
                 .isInstanceOf(PictureStorageException.class);
+    }
+
+    @Test
+    void shouldDeleteStoredPicture(@TempDir Path tempDir) throws IOException {
+        PictureStorageService service = new PictureStorageService(tempDir.toString());
+        String filename = service.store(pngPicture());
+
+        service.delete(filename);
+
+        assertThat(Files.exists(tempDir.resolve(filename))).isFalse();
+    }
+
+    @Test
+    void shouldNotThrowWhenDeletingMissingPicture(@TempDir Path tempDir) {
+        PictureStorageService service = new PictureStorageService(tempDir.toString());
+
+        assertThatCode(() -> service.delete("does-not-exist.png")).doesNotThrowAnyException();
     }
 
     @Test
