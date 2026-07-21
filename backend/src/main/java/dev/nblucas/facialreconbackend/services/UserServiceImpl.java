@@ -49,22 +49,40 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void deleteOrphanedPicture(String picturePath, RuntimeException createException) {
+    private void deleteOrphanedPicture(String picturePath, RuntimeException failure) {
         try {
             pictureStorageService.delete(picturePath);
         } catch (RuntimeException deleteException) {
-            createException.addSuppressed(deleteException);
+            failure.addSuppressed(deleteException);
         }
     }
 
     public UserResponse update(Long id, UpdateUserRequest request, MultipartFile picture) {
         this.userValidator.validateUpdate(id, request, picture);
-        // Generate UUID for picture file name and add picture to filesystem
+
+        TbUsersRecord existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+
+        String picturePath = resolvePicturePath(picture, existingUser);
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
-        TbUsersRecord user = userRepository.update(id, request.name(), "placeholder")
-                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
-        return createUserResponse(user);
+
+        try {
+            TbUsersRecord user = userRepository.update(id, request.name(), picturePath)
+                    .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+            return createUserResponse(user);
+        } catch (RuntimeException updateException) {
+            if (picture != null) {
+                deleteOrphanedPicture(picturePath, updateException);
+            }
+            throw updateException;
+        }
+    }
+
+    private String resolvePicturePath(MultipartFile picture, TbUsersRecord existingUser) {
+        return picture != null
+                ? this.pictureStorageService.store(picture)
+                : existingUser.getPicturePath();
     }
 
     public UserPageResponse list(int offset, int limit) {

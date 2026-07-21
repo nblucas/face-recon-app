@@ -122,31 +122,102 @@ class UserServiceImplTest {
     void shouldValidateThenUpdateUserAndReturnResponse() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
         OffsetDateTime createdAt = OffsetDateTime.now().minusDays(1);
         OffsetDateTime updatedAt = OffsetDateTime.now();
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "placeholder", createdAt, updatedAt);
+                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt);
 
-        when(userRepository.update(1L, "John Smith", "placeholder")).thenReturn(Optional.of(updated));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
 
         UserResponse response = userService.update(1L, request, picture);
 
-        InOrder inOrder = inOrder(userValidator, userRepository);
+        InOrder inOrder = inOrder(userValidator, userRepository, pictureStorageService);
         inOrder.verify(userValidator).validateUpdate(1L, request, picture);
-        inOrder.verify(userRepository).update(1L, "John Smith", "placeholder");
+        inOrder.verify(userRepository).findById(1L);
+        inOrder.verify(pictureStorageService).store(picture);
+        inOrder.verify(userRepository).update(1L, "John Smith", "new.png");
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt));
+    }
+
+    @Test
+    void shouldReuseExistingPicturePathWhenNoNewPictureGiven() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+        TbUsersRecord updated = new TbUsersRecord(
+                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.update(1L, "John Smith", "existing.png")).thenReturn(Optional.of(updated));
+
+        userService.update(1L, request, null);
+
+        verifyNoInteractions(pictureStorageService);
+        verify(userRepository).update(1L, "John Smith", "existing.png");
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenUserVanishesBeforeUpdateLookup() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.update(1L, request, picture()))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verifyNoInteractions(pictureStorageService);
     }
 
     @Test
     void shouldThrowUserNotFoundWhenRecordVanishesBeforeUpdate() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
 
-        when(userRepository.update(1L, "John Smith", "placeholder")).thenReturn(Optional.empty());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.update(1L, request, picture))
                 .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    void shouldDeleteNewlyStoredPictureWhenUpdateFails() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+        RuntimeException updateFailure = new RuntimeException("connection lost");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Smith", "new.png")).thenThrow(updateFailure);
+
+        assertThatThrownBy(() -> userService.update(1L, request, picture)).isSameAs(updateFailure);
+
+        verify(pictureStorageService).delete("new.png");
+    }
+
+    @Test
+    void shouldNotAttemptCleanupWhenUpdateFailsWithoutNewPicture() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+        RuntimeException updateFailure = new RuntimeException("connection lost");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.update(1L, "John Smith", "existing.png")).thenThrow(updateFailure);
+
+        assertThatThrownBy(() -> userService.update(1L, request, null)).isSameAs(updateFailure);
+
+        verifyNoInteractions(pictureStorageService);
     }
 
     @Test
