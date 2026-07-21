@@ -18,22 +18,25 @@ public class UserServiceImpl implements UserService {
 
     UserRepository userRepository;
     UserValidator userValidator;
+    PictureStorageService pictureStorageService;
 
     @Autowired
     public UserServiceImpl(
             UserRepository userRepository,
-            UserValidator userValidator
+            UserValidator userValidator,
+            PictureStorageService pictureStorageService
     ) {
         this.userRepository = userRepository;
         this.userValidator = userValidator;
+        this.pictureStorageService = pictureStorageService;
     }
 
     public UserResponse create(CreateUserRequest request, MultipartFile picture) {
         this.userValidator.validateCreation(request, picture);
-        // Generate UUID for picture file name and add picture to filesystem
+        String picturePath = this.pictureStorageService.store(picture);
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
-        TbUsersRecord user = userRepository.create(request.name(), request.cpf(), "placeholder");
+        TbUsersRecord user = userRepository.create(request.name(), request.cpf(), picturePath);
         return createUserResponse(user);
     }
 

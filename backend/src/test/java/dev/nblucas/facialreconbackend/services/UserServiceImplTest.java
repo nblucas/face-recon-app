@@ -37,11 +37,14 @@ class UserServiceImplTest {
     @Mock
     private UserValidator userValidator;
 
+    @Mock
+    private PictureStorageService pictureStorageService;
+
     private UserServiceImpl userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, userValidator);
+        userService = new UserServiceImpl(userRepository, userValidator, pictureStorageService);
     }
 
     @Test
@@ -50,15 +53,17 @@ class UserServiceImplTest {
         MultipartFile picture = picture();
         OffsetDateTime createdAt = OffsetDateTime.now();
         TbUsersRecord created = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "placeholder", createdAt, createdAt);
+                1L, "John Doe", "52998224725", "generated.png", createdAt, createdAt);
 
-        when(userRepository.create("John Doe", "52998224725", "placeholder")).thenReturn(created);
+        when(pictureStorageService.store(picture)).thenReturn("generated.png");
+        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenReturn(created);
 
         UserResponse response = userService.create(request, picture);
 
-        InOrder inOrder = inOrder(userValidator, userRepository);
+        InOrder inOrder = inOrder(userValidator, pictureStorageService, userRepository);
         inOrder.verify(userValidator).validateCreation(request, picture);
-        inOrder.verify(userRepository).create("John Doe", "52998224725", "placeholder");
+        inOrder.verify(pictureStorageService).store(picture);
+        inOrder.verify(userRepository).create("John Doe", "52998224725", "generated.png");
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", createdAt));
     }
@@ -74,6 +79,7 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.create(request, picture))
                 .isInstanceOf(InvalidNameException.class);
 
+        verifyNoInteractions(pictureStorageService);
         verifyNoInteractions(userRepository);
     }
 
