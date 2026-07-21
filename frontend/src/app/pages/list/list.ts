@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserResponse, UserService } from '../../services/user-service';
 import { EditUserModal } from './edit-user-modal/edit-user-modal';
@@ -14,6 +15,7 @@ const PAGE_LIMIT = 20;
 })
 export class List {
   private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
 
   protected readonly users = signal<UserResponse[]>([]);
   protected readonly total = signal(0);
@@ -68,6 +70,10 @@ export class List {
 
   protected onPictureError(user: UserResponse): void {
     this.brokenPictureIds.update((ids) => new Set(ids).add(user.id));
+  }
+
+  protected onDetails(user: UserResponse): void {
+    this.router.navigate(['/details', user.id]);
   }
 
   protected onEdit(user: UserResponse): void {
