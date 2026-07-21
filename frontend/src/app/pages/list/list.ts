@@ -14,10 +14,42 @@ export class List {
   private readonly userService = inject(UserService);
 
   protected readonly users = signal<UserResponse[]>([]);
+  protected readonly total = signal(0);
+  protected readonly offset = signal(0);
   protected readonly loading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
 
+  protected readonly limit = PAGE_LIMIT;
+
   constructor() {
+    this.fetchUsers();
+  }
+
+  protected get rangeStart(): number {
+    return this.total() === 0 ? 0 : this.offset() + 1;
+  }
+
+  protected get rangeEnd(): number {
+    return Math.min(this.offset() + this.limit, this.total());
+  }
+
+  protected get hasPrevious(): boolean {
+    return this.offset() > 0;
+  }
+
+  protected get hasNext(): boolean {
+    return this.offset() + this.limit < this.total();
+  }
+
+  protected onPrevious(): void {
+    if (!this.hasPrevious) return;
+    this.offset.set(Math.max(0, this.offset() - this.limit));
+    this.fetchUsers();
+  }
+
+  protected onNext(): void {
+    if (!this.hasNext) return;
+    this.offset.set(this.offset() + this.limit);
     this.fetchUsers();
   }
 
@@ -42,9 +74,10 @@ export class List {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.userService.listUsers(0, PAGE_LIMIT).subscribe({
+    this.userService.listUsers(this.offset(), this.limit).subscribe({
       next: (page) => {
         this.users.set(page.users);
+        this.total.set(page.total);
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {

@@ -29,5 +29,15 @@
         </div>
       }
     </div>
+
+    @if (total() > 0) {
+      <div class="pagination">
+        <span class="range">Showing {{ rangeStart }}–{{ rangeEnd }} of {{ total() }}</span>
+        <div class="pagination-buttons">
+          <button type="button" (click)="onPrevious()" [disabled]="!hasPrevious">Previous</button>
+          <button type="button" (click)="onNext()" [disabled]="!hasNext">Next</button>
+        </div>
+      </div>
+    }
   }
 </div>
