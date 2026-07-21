@@ -1,6 +1,8 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchResponse;
 import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
@@ -15,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController()
 @RequestMapping("api/v1/users")
@@ -101,5 +105,18 @@ public class UserController {
     ) {
         VerifyUserResponse response = this.userService.verify(request.cpf(), picture);
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping(
+            path = "/batch",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<CreateUsersBatchResponse> createUsersBatch(
+            @Valid @RequestPart CreateUsersBatchRequest request,
+            @RequestPart("pictures") List<MultipartFile> pictures
+    ) {
+        CreateUsersBatchResponse response = this.userService.createBatch(request, pictures);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

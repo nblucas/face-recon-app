@@ -6,7 +6,7 @@ REST API, versioned under `/api/v1`. See [`../common/spec.md`](../common/spec.md
 
 `POST /api/v1/users`
 
-Registers a single user. Multiple/batch registration (with threading) is a separate endpoint, to be documented once designed.
+Registers a single user. Multiple/batch registration (with threading) is a separate endpoint — see "Create users (batch registration)" below.
 
 ### Request
 
@@ -93,3 +93,38 @@ Given a CPF and a picture, checks whether the picture's face matches the registe
 - `200 OK`: request valid, comparison performed. Body: `{"matched": boolean}`.
 - `400 Bad Request`: missing/invalid CPF format, missing or non-image picture, or no face (or more than one face) detected.
 - `404 Not Found`: no registered user has the given CPF.
+
+## Create users (batch registration)
+
+`POST /api/v1/users/batch`
+
+Registers up to 8 users in a single request, with all-or-nothing semantics: either every user in the batch is created, or none is. See [`../common/spec.md`](../common/spec.md) for the multiple-registration requirement.
+
+### Request
+
+`multipart/form-data` with two parts:
+
+- `request` (JSON):
+  ```json
+  {
+    "users": [
+      {"clientId": "string, required, unique within the request", "name": "string, required", "cpf": "string, required, unique"},
+      ...
+    ]
+  }
+  ```
+- `pictures`: one image file per entry in `users`, in any order. **Each picture's filename must be its entry's `clientId`, with the original extension kept** (e.g. `0.jpg` for the entry with `"clientId": "0"`) — this is how the server matches each picture to its corresponding entry in `users`, since HTTP multipart doesn't otherwise preserve a reliable association between separately-named parts. `clientId` is an opaque value chosen by the caller purely for this correlation (e.g. the entry's position in the list) — it is never stored and never appears in the response; in particular, it is **not** meant to carry the CPF or any other personal data.
+
+### Behavior
+
+1. Validate the batch has between 1 and 8 users.
+2. Validate there are no duplicate CPFs, and no duplicate `clientId`s, among `users`.
+3. Match every picture to its `users` entry by `clientId` — every entry must have exactly one matching picture and vice versa.
+4. Validate each entry exactly like singular registration (CPF format/uniqueness, name, picture format).
+5. Detect a face and extract its embedding for every picture, in parallel.
+6. Only once every entry above passed every check: store all pictures, then insert every user in a single database statement.
+
+### Responses
+
+- `201 Created`: every user in the batch was created. Body: `{"users": [...]}` (same shape as the singular user response, one per entry), in the same order as the request's `users`.
+- `400 Bad Request`: batch size out of range, duplicate CPF (within the batch or already registered), duplicate `clientId`, a picture whose filename isn't named after a `clientId`, a picture/user without a match, missing/blank fields, invalid CPF format, missing or non-image picture, or no face (or more than one face) detected in any picture. As with singular registration, no user in the batch is created if any of this fails.
