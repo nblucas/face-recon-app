@@ -6,6 +6,7 @@ import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
 import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
+import dev.nblucas.facialreconbackend.facialrecognition.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;
@@ -22,31 +23,41 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     UserValidator userValidator;
     PictureStorageService pictureStorageService;
+    FaceEmbeddingService faceEmbeddingService;
 
     @Autowired
     public UserServiceImpl(
             UserRepository userRepository,
             UserValidator userValidator,
-            PictureStorageService pictureStorageService
+            PictureStorageService pictureStorageService,
+            FaceEmbeddingService faceEmbeddingService
     ) {
         this.userRepository = userRepository;
         this.userValidator = userValidator;
         this.pictureStorageService = pictureStorageService;
+        this.faceEmbeddingService = faceEmbeddingService;
     }
 
     public UserResponse create(CreateUserRequest request, MultipartFile picture) {
         this.userValidator.validateCreation(request, picture);
+        Float[] embedding = box(faceEmbeddingService.extractEmbedding(picture));
         String picturePath = this.pictureStorageService.store(picture);
-        // Detect face in picture (if exists, and if not, validate)
-        // Extract numerical representation of picture
 
         try {
-            TbUsersRecord user = userRepository.create(request.name(), request.cpf(), picturePath);
+            TbUsersRecord user = userRepository.create(request.name(), request.cpf(), picturePath, embedding);
             return createUserResponse(user);
         } catch (RuntimeException createException) {
             deleteOrphanedPicture(picturePath, createException);
             throw createException;
         }
+    }
+
+    private static Float[] box(float[] values) {
+        Float[] boxed = new Float[values.length];
+        for (int i = 0; i < values.length; i++) {
+            boxed[i] = values[i];
+        }
+        return boxed;
     }
 
     private void deleteOrphanedPicture(String picturePath, RuntimeException failure) {
@@ -65,12 +76,11 @@ public class UserServiceImpl implements UserService {
 
         String name = resolveName(request, existingUser);
         String oldPicturePath = existingUser.getPicturePath();
+        Float[] embedding = resolveEmbedding(picture, existingUser);
         String picturePath = resolvePicturePath(picture, existingUser);
-        // Detect face in picture (if exists, and if not, validate)
-        // Extract numerical representation of picture
 
         try {
-            TbUsersRecord user = userRepository.update(id, name, picturePath)
+            TbUsersRecord user = userRepository.update(id, name, picturePath, embedding)
                     .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
 
             if (picture != null) {
@@ -94,6 +104,12 @@ public class UserServiceImpl implements UserService {
         return picture != null
                 ? this.pictureStorageService.store(picture)
                 : existingUser.getPicturePath();
+    }
+
+    private Float[] resolveEmbedding(MultipartFile picture, TbUsersRecord existingUser) {
+        return picture != null
+                ? box(faceEmbeddingService.extractEmbedding(picture))
+                : existingUser.getEmbedding();
     }
 
     private void deletePictureBestEffort(String picturePath) {

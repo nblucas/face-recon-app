@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import dev.nblucas.facialreconbackend.TestcontainersConfiguration;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,9 +23,11 @@ class UserRepositoryImplIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    private static final Float[] EMBEDDING = new Float[] {0.1f, 0.2f};
+
     @Test
     void shouldPersistUserAndGenerateIdAndTimestamps() {
-        TbUsersRecord created = userRepository.create("John Doe", "52998224725", "/pictures/john.png");
+        TbUsersRecord created = userRepository.create("John Doe", "52998224725", "/pictures/john.png", EMBEDDING);
 
         assertThat(created.getCoSeqUser()).isNotNull();
         assertThat(created.getName()).isEqualTo("John Doe");
@@ -36,50 +39,65 @@ class UserRepositoryImplIntegrationTest {
 
     @Test
     void shouldTranslateUniqueViolationIntoInvalidCpfException() {
-        userRepository.create("Original User", "13579246801", "/pictures/original.png");
+        userRepository.create("Original User", "13579246801", "/pictures/original.png", EMBEDDING);
 
         assertThatThrownBy(() ->
-                userRepository.create("Duplicate User", "13579246801", "/pictures/duplicate.png"))
+                userRepository.create("Duplicate User", "13579246801", "/pictures/duplicate.png", EMBEDDING))
                 .isInstanceOf(InvalidCpfException.class)
                 .hasMessage("CPF given is already registered.");
     }
 
     @Test
     void shouldReturnTrueWhenCpfExists() {
-        userRepository.create("Jane Doe", "11144477735", "/pictures/jane.png");
+        userRepository.create("Jane Doe", "11144477735", "/pictures/jane.png", EMBEDDING);
 
         assertThat(userRepository.exists("11144477735")).isTrue();
     }
 
     @Test
     void shouldReturnFalseWhenCpfDoesNotExist() {
-        userRepository.create("Bruno Lima", "22233344459", "/pictures/bruno.png");
-        userRepository.create("Carla Souza", "33344455567", "/pictures/carla.png");
+        userRepository.create("Bruno Lima", "22233344459", "/pictures/bruno.png", EMBEDDING);
+        userRepository.create("Carla Souza", "33344455567", "/pictures/carla.png", EMBEDDING);
 
         assertThat(userRepository.exists("99988877766")).isFalse();
     }
 
     @Test
     void shouldReturnTrueWhenIdExists() {
-        TbUsersRecord created = userRepository.create("Mark Doe", "12345678909", "/pictures/mark.png");
+        TbUsersRecord created = userRepository.create("Mark Doe", "12345678909", "/pictures/mark.png", EMBEDDING);
 
         assertThat(userRepository.exists(created.getCoSeqUser())).isTrue();
     }
 
     @Test
     void shouldReturnFalseWhenIdDoesNotExist() {
-        userRepository.create("Diego Alves", "44455566678", "/pictures/diego.png");
-        userRepository.create("Elisa Nunes", "55566677789", "/pictures/elisa.png");
+        userRepository.create("Diego Alves", "44455566678", "/pictures/diego.png", EMBEDDING);
+        userRepository.create("Elisa Nunes", "55566677789", "/pictures/elisa.png", EMBEDDING);
 
         assertThat(userRepository.exists(Long.MAX_VALUE)).isFalse();
     }
 
     @Test
+    void shouldPersistAndReturnTheGivenEmbedding() {
+        Float[] embedding = new Float[512];
+        Arrays.fill(embedding, 1f);
+
+        TbUsersRecord created = userRepository.create("Embedding User", "10293847560", "/pictures/embedding.png", embedding);
+
+        assertThat(created.getEmbedding()).isEqualTo(embedding);
+
+        Optional<TbUsersRecord> found = userRepository.findById(created.getCoSeqUser());
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getEmbedding()).isEqualTo(embedding);
+    }
+
+    @Test
     void shouldUpdateNameAndPicturePathAndBumpUpdatedAt() {
-        TbUsersRecord created = userRepository.create("Alice Doe", "98765432100", "/pictures/alice.png");
+        TbUsersRecord created = userRepository.create("Alice Doe", "98765432100", "/pictures/alice.png", EMBEDDING);
 
         Optional<TbUsersRecord> updated = userRepository.update(
-                created.getCoSeqUser(), "Alice Smith", "/pictures/alice-smith.png");
+                created.getCoSeqUser(), "Alice Smith", "/pictures/alice-smith.png", EMBEDDING);
 
         assertThat(updated).isPresent();
         assertThat(updated.get().getCoSeqUser()).isEqualTo(created.getCoSeqUser());
@@ -92,19 +110,19 @@ class UserRepositoryImplIntegrationTest {
 
     @Test
     void shouldReturnEmptyWhenUpdatingNonExistentId() {
-        userRepository.create("Fabio Rocha", "66677788890", "/pictures/fabio.png");
-        userRepository.create("Gisele Alves", "77788899901", "/pictures/gisele.png");
+        userRepository.create("Fabio Rocha", "66677788890", "/pictures/fabio.png", EMBEDDING);
+        userRepository.create("Gisele Alves", "77788899901", "/pictures/gisele.png", EMBEDDING);
 
-        Optional<TbUsersRecord> updated = userRepository.update(Long.MAX_VALUE, "Ghost", "/pictures/ghost.png");
+        Optional<TbUsersRecord> updated = userRepository.update(Long.MAX_VALUE, "Ghost", "/pictures/ghost.png", EMBEDDING);
 
         assertThat(updated).isEmpty();
     }
 
     @Test
     void shouldReturnUsersOrderedByCreationOrder() {
-        TbUsersRecord first = userRepository.create("Helio Prado", "12312312312", "/pictures/helio.png");
-        TbUsersRecord second = userRepository.create("Isabela Melo", "32132132132", "/pictures/isabela.png");
-        TbUsersRecord third = userRepository.create("Joaquim Reis", "45645645645", "/pictures/joaquim.png");
+        TbUsersRecord first = userRepository.create("Helio Prado", "12312312312", "/pictures/helio.png", EMBEDDING);
+        TbUsersRecord second = userRepository.create("Isabela Melo", "32132132132", "/pictures/isabela.png", EMBEDDING);
+        TbUsersRecord third = userRepository.create("Joaquim Reis", "45645645645", "/pictures/joaquim.png", EMBEDDING);
         List<Long> ids = List.of(first.getCoSeqUser(), second.getCoSeqUser(), third.getCoSeqUser());
 
         List<TbUsersRecord> page = userRepository.findAll(0, Integer.MAX_VALUE).stream()
@@ -116,9 +134,9 @@ class UserRepositoryImplIntegrationTest {
 
     @Test
     void shouldRespectOffsetAndLimitWhenPaginating() {
-        TbUsersRecord first = userRepository.create("Karen Dias", "65465465465", "/pictures/karen.png");
-        TbUsersRecord second = userRepository.create("Lucas Prado", "78978978978", "/pictures/lucas.png");
-        userRepository.create("Mariana Costa", "89189189189", "/pictures/mariana.png");
+        TbUsersRecord first = userRepository.create("Karen Dias", "65465465465", "/pictures/karen.png", EMBEDDING);
+        TbUsersRecord second = userRepository.create("Lucas Prado", "78978978978", "/pictures/lucas.png", EMBEDDING);
+        userRepository.create("Mariana Costa", "89189189189", "/pictures/mariana.png", EMBEDDING);
 
         int firstIndex = userRepository.findAll(0, Integer.MAX_VALUE).indexOf(first);
         List<TbUsersRecord> page = userRepository.findAll(firstIndex + 1, 1);
@@ -139,15 +157,15 @@ class UserRepositoryImplIntegrationTest {
     void shouldReturnTotalCountOfUsers() {
         long before = userRepository.count();
 
-        userRepository.create("Nadia Fontes", "91291291291", "/pictures/nadia.png");
-        userRepository.create("Otavio Reis", "92392392392", "/pictures/otavio.png");
+        userRepository.create("Nadia Fontes", "91291291291", "/pictures/nadia.png", EMBEDDING);
+        userRepository.create("Otavio Reis", "92392392392", "/pictures/otavio.png", EMBEDDING);
 
         assertThat(userRepository.count()).isEqualTo(before + 2);
     }
 
     @Test
     void shouldDeleteUser() {
-        TbUsersRecord created = userRepository.create("Test User", "11223344506", "/pictures/test.png");
+        TbUsersRecord created = userRepository.create("Test User", "11223344506", "/pictures/test.png", EMBEDDING);
 
         userRepository.delete(created.getCoSeqUser());
 

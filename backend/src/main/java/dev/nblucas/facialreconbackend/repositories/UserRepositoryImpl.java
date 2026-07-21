@@ -21,7 +21,7 @@ public class UserRepositoryImpl implements UserRepository {
         this.dsl = dsl;
     }
 
-    public TbUsersRecord create(String name, String cpf, String picturePath) {
+    public TbUsersRecord create(String name, String cpf, String picturePath, Float[] embedding) {
         OffsetDateTime now = OffsetDateTime.now();
 
         try {
@@ -30,6 +30,7 @@ public class UserRepositoryImpl implements UserRepository {
                     .set(TB_USERS.NAME, name)
                     .set(TB_USERS.CPF, cpf)
                     .set(TB_USERS.PICTURE_PATH, picturePath)
+                    .set(TB_USERS.EMBEDDING, embedding)
                     .set(TB_USERS.CREATED_AT, now)
                     .set(TB_USERS.UPDATED_AT, now)
                     .returning()
@@ -49,11 +50,12 @@ public class UserRepositoryImpl implements UserRepository {
         return this.dsl.fetchCount(TB_USERS, condition) > 0;
     }
 
-    public Optional<TbUsersRecord> update(Long id, String name, String picturePath) {
+    public Optional<TbUsersRecord> update(Long id, String name, String picturePath, Float[] embedding) {
         return this.dsl
                 .update(TB_USERS)
                 .set(TB_USERS.NAME, name)
                 .set(TB_USERS.PICTURE_PATH, picturePath)
+                .set(TB_USERS.EMBEDDING, embedding)
                 .set(TB_USERS.UPDATED_AT, OffsetDateTime.now())
                 .where(TB_USERS.CO_SEQ_USER.eq(id))
                 .returning()

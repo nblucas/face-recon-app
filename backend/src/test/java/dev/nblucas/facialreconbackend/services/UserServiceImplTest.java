@@ -5,9 +5,11 @@ import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
 import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
+import dev.nblucas.facialreconbackend.exceptions.InvalidFaceCountException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
+import dev.nblucas.facialreconbackend.facialrecognition.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;
@@ -48,11 +50,17 @@ class UserServiceImplTest {
     @Mock
     private PictureStorageService pictureStorageService;
 
+    @Mock
+    private FaceEmbeddingService faceEmbeddingService;
+
     private UserServiceImpl userService;
+
+    private static final float[] EXTRACTED_EMBEDDING = {0.1f, 0.2f};
+    private static final Float[] BOXED_EMBEDDING = {0.1f, 0.2f};
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, userValidator, pictureStorageService);
+        userService = new UserServiceImpl(userRepository, userValidator, pictureStorageService, faceEmbeddingService);
     }
 
     @Test
@@ -61,17 +69,19 @@ class UserServiceImplTest {
         MultipartFile picture = picture();
         OffsetDateTime createdAt = OffsetDateTime.now();
         TbUsersRecord created = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "generated.png", createdAt, createdAt);
+                1L, "John Doe", "52998224725", "generated.png", createdAt, createdAt, BOXED_EMBEDDING);
 
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("generated.png");
-        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenReturn(created);
+        when(userRepository.create("John Doe", "52998224725", "generated.png", BOXED_EMBEDDING)).thenReturn(created);
 
         UserResponse response = userService.create(request, picture);
 
-        InOrder inOrder = inOrder(userValidator, pictureStorageService, userRepository);
+        InOrder inOrder = inOrder(userValidator, faceEmbeddingService, pictureStorageService, userRepository);
         inOrder.verify(userValidator).validateCreation(request, picture);
+        inOrder.verify(faceEmbeddingService).extractEmbedding(picture);
         inOrder.verify(pictureStorageService).store(picture);
-        inOrder.verify(userRepository).create("John Doe", "52998224725", "generated.png");
+        inOrder.verify(userRepository).create("John Doe", "52998224725", "generated.png", BOXED_EMBEDDING);
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Doe", "52998224725", createdAt, createdAt));
     }
@@ -82,8 +92,9 @@ class UserServiceImplTest {
         MultipartFile picture = picture();
         RuntimeException createFailure = new RuntimeException("duplicate key");
 
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("generated.png");
-        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenThrow(createFailure);
+        when(userRepository.create("John Doe", "52998224725", "generated.png", BOXED_EMBEDDING)).thenThrow(createFailure);
 
         assertThatThrownBy(() -> userService.create(request, picture)).isSameAs(createFailure);
 
@@ -97,8 +108,9 @@ class UserServiceImplTest {
         RuntimeException createFailure = new RuntimeException("duplicate key");
         RuntimeException deleteFailure = new RuntimeException("disk error");
 
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("generated.png");
-        when(userRepository.create("John Doe", "52998224725", "generated.png")).thenThrow(createFailure);
+        when(userRepository.create("John Doe", "52998224725", "generated.png", BOXED_EMBEDDING)).thenThrow(createFailure);
         doThrow(deleteFailure).when(pictureStorageService).delete("generated.png");
 
         assertThatThrownBy(() -> userService.create(request, picture)).isSameAs(createFailure);
@@ -117,6 +129,21 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.create(request, picture))
                 .isInstanceOf(InvalidNameException.class);
 
+        verifyNoInteractions(faceEmbeddingService);
+        verifyNoInteractions(pictureStorageService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void shouldNotCreateUserWhenFaceExtractionFails() {
+        CreateUserRequest request = new CreateUserRequest("John Doe", "52998224725");
+        MultipartFile picture = picture();
+        InvalidFaceCountException extractionFailure = new InvalidFaceCountException("No face detected in the picture given.");
+
+        when(faceEmbeddingService.extractEmbedding(picture)).thenThrow(extractionFailure);
+
+        assertThatThrownBy(() -> userService.create(request, picture)).isSameAs(extractionFailure);
+
         verifyNoInteractions(pictureStorageService);
         verifyNoInteractions(userRepository);
     }
@@ -126,23 +153,25 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         OffsetDateTime createdAt = OffsetDateTime.now().minusDays(1);
         OffsetDateTime updatedAt = OffsetDateTime.now();
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt);
+                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt, BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Smith", "new.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
 
         UserResponse response = userService.update(1L, request, picture);
 
-        InOrder inOrder = inOrder(userValidator, userRepository, pictureStorageService);
+        InOrder inOrder = inOrder(userValidator, userRepository, faceEmbeddingService, pictureStorageService);
         inOrder.verify(userValidator).validateUpdate(1L, request, picture);
         inOrder.verify(userRepository).findById(1L);
+        inOrder.verify(faceEmbeddingService).extractEmbedding(picture);
         inOrder.verify(pictureStorageService).store(picture);
-        inOrder.verify(userRepository).update(1L, "John Smith", "new.png");
+        inOrder.verify(userRepository).update(1L, "John Smith", "new.png", BOXED_EMBEDDING);
 
         assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt, updatedAt));
     }
@@ -151,17 +180,18 @@ class UserServiceImplTest {
     void shouldReuseExistingPicturePathWhenNoNewPictureGiven() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
-        when(userRepository.update(1L, "John Smith", "existing.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Smith", "existing.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
 
         userService.update(1L, request, null);
 
+        verifyNoInteractions(faceEmbeddingService);
         verifyNoInteractions(pictureStorageService);
-        verify(userRepository).update(1L, "John Smith", "existing.png");
+        verify(userRepository).update(1L, "John Smith", "existing.png", BOXED_EMBEDDING);
     }
 
     @Test
@@ -169,17 +199,18 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest(null);
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Doe", "new.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Doe", "new.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
 
         userService.update(1L, request, picture);
 
-        verify(userRepository).update(1L, "John Doe", "new.png");
+        verify(userRepository).update(1L, "John Doe", "new.png", BOXED_EMBEDDING);
     }
 
     @Test
@@ -199,11 +230,12 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.empty());
+        when(userRepository.update(1L, "John Smith", "new.png", BOXED_EMBEDDING)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.update(1L, request, picture))
                 .isInstanceOf(UserNotFoundException.class);
@@ -214,12 +246,13 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         RuntimeException updateFailure = new RuntimeException("connection lost");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Smith", "new.png")).thenThrow(updateFailure);
+        when(userRepository.update(1L, "John Smith", "new.png", BOXED_EMBEDDING)).thenThrow(updateFailure);
 
         assertThatThrownBy(() -> userService.update(1L, request, picture)).isSameAs(updateFailure);
 
@@ -230,14 +263,15 @@ class UserServiceImplTest {
     void shouldNotAttemptCleanupWhenUpdateFailsWithoutNewPicture() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         RuntimeException updateFailure = new RuntimeException("connection lost");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
-        when(userRepository.update(1L, "John Smith", "existing.png")).thenThrow(updateFailure);
+        when(userRepository.update(1L, "John Smith", "existing.png", BOXED_EMBEDDING)).thenThrow(updateFailure);
 
         assertThatThrownBy(() -> userService.update(1L, request, null)).isSameAs(updateFailure);
 
+        verifyNoInteractions(faceEmbeddingService);
         verifyNoInteractions(pictureStorageService);
     }
 
@@ -246,13 +280,14 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Smith", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Smith", "new.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
 
         userService.update(1L, request, picture);
 
@@ -263,15 +298,16 @@ class UserServiceImplTest {
     void shouldNotDeleteAnythingWhenNoNewPictureGiven() {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
-        when(userRepository.update(1L, "John Smith", "existing.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Smith", "existing.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
 
         userService.update(1L, request, null);
 
+        verifyNoInteractions(faceEmbeddingService);
         verifyNoInteractions(pictureStorageService);
     }
 
@@ -280,15 +316,16 @@ class UserServiceImplTest {
         UpdateUserRequest request = new UpdateUserRequest("John Smith");
         MultipartFile picture = picture();
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         OffsetDateTime createdAt = OffsetDateTime.now().minusDays(1);
         OffsetDateTime updatedAt = OffsetDateTime.now();
         TbUsersRecord updated = new TbUsersRecord(
-                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt);
+                1L, "John Smith", "52998224725", "new.png", createdAt, updatedAt, BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(faceEmbeddingService.extractEmbedding(picture)).thenReturn(EXTRACTED_EMBEDDING);
         when(pictureStorageService.store(picture)).thenReturn("new.png");
-        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
+        when(userRepository.update(1L, "John Smith", "new.png", BOXED_EMBEDDING)).thenReturn(Optional.of(updated));
         doThrow(new RuntimeException("disk error")).when(pictureStorageService).delete("old.png");
 
         UserResponse response = userService.update(1L, request, picture);
@@ -307,14 +344,17 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.update(1L, request, picture))
                 .isInstanceOf(InvalidNameException.class);
 
+        verifyNoInteractions(faceEmbeddingService);
         verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldValidateThenListUsersAndReturnPageResponse() {
         OffsetDateTime createdAt = OffsetDateTime.now();
-        TbUsersRecord first = new TbUsersRecord(1L, "John Doe", "52998224725", "placeholder", createdAt, createdAt);
-        TbUsersRecord second = new TbUsersRecord(2L, "Jane Doe", "11144477735", "placeholder", createdAt, createdAt);
+        TbUsersRecord first = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "placeholder", createdAt, createdAt, BOXED_EMBEDDING);
+        TbUsersRecord second = new TbUsersRecord(
+                2L, "Jane Doe", "11144477735", "placeholder", createdAt, createdAt, BOXED_EMBEDDING);
 
         when(userRepository.findAll(0, 20)).thenReturn(List.of(first, second));
         when(userRepository.count()).thenReturn(2L);
@@ -348,7 +388,7 @@ class UserServiceImplTest {
     @Test
     void shouldGetPngPictureAndReturnResponse() {
         TbUsersRecord user = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         byte[] bytes = new byte[] {1, 2, 3};
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -362,7 +402,7 @@ class UserServiceImplTest {
     @Test
     void shouldGetJpegPictureAndReturnResponse() {
         TbUsersRecord user = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "generated.jpg", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "generated.jpg", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
         byte[] bytes = new byte[] {1, 2, 3};
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -386,7 +426,7 @@ class UserServiceImplTest {
     @Test
     void shouldGetUserAndReturnResponse() {
         TbUsersRecord user = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
@@ -407,7 +447,7 @@ class UserServiceImplTest {
     @Test
     void shouldDeleteUserAndItsPicture() {
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
 
@@ -432,7 +472,7 @@ class UserServiceImplTest {
     @Test
     void shouldNotFailWhenDeletingPictureFileFails() {
         TbUsersRecord existingUser = new TbUsersRecord(
-                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now(), BOXED_EMBEDDING);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
         doThrow(new RuntimeException("disk error")).when(pictureStorageService).delete("old.png");
