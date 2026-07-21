@@ -14,5 +14,6 @@ public interface UserRepository {
     public long count();
     public Optional<TbUsersRecord> findById(Long id);
     public Optional<TbUsersRecord> findByCpf(String cpf);
+    public List<TbUsersRecord> createBatch(List<NewUser> users);
     public void delete(Long id);
 }

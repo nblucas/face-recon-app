@@ -194,4 +194,29 @@ class UserRepositoryImplIntegrationTest {
 
         assertThat(found).isEmpty();
     }
+
+    @Test
+    void shouldPersistAllUsersInOneBatchAndReturnGeneratedValues() {
+        List<NewUser> newUsers = List.of(
+                new NewUser("First User", "60433620353", "/pictures/first.png", EMBEDDING),
+                new NewUser("Second User", "70544731464", "/pictures/second.png", EMBEDDING));
+
+        List<TbUsersRecord> created = userRepository.createBatch(newUsers);
+
+        assertThat(created).hasSize(2);
+        assertThat(created.get(0).getCoSeqUser()).isNotNull();
+        assertThat(created.get(0).getName()).isEqualTo("First User");
+        assertThat(created.get(1).getName()).isEqualTo("Second User");
+    }
+
+    @Test
+    void shouldTranslateUniqueViolationIntoInvalidCpfExceptionOnBatchInsert() {
+        userRepository.create("Existing User", "81655842575", "/pictures/existing.png", EMBEDDING);
+
+        List<NewUser> newUsers = List.of(new NewUser("New User", "81655842575", "/pictures/new.png", EMBEDDING));
+
+        assertThatThrownBy(() -> userRepository.createBatch(newUsers))
+                .isInstanceOf(InvalidCpfException.class)
+                .hasMessage("CPF given is already registered.");
+    }
 }

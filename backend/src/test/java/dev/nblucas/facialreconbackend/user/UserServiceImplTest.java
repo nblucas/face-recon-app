@@ -6,6 +6,9 @@ import dev.nblucas.facialreconbackend.face.FaceSimilarity;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchEntry;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchResponse;
 import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.UserPageResponse;
@@ -18,6 +21,7 @@ import dev.nblucas.facialreconbackend.user.exceptions.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,11 +31,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -61,6 +67,9 @@ class UserServiceImplTest {
     @Mock
     private FaceSimilarity faceSimilarity;
 
+    @Mock
+    private UserBatchEmbeddingExtractor userBatchEmbeddingExtractor;
+
     private UserServiceImpl userService;
 
     private static final float[] EXTRACTED_EMBEDDING = {0.1f, 0.2f};
@@ -70,7 +79,7 @@ class UserServiceImplTest {
     void setUp() {
         userService = new UserServiceImpl(
                 userRepository, userValidator, pictureStorageService, faceEmbeddingService, userIdentifier,
-                faceSimilarity);
+                faceSimilarity, userBatchEmbeddingExtractor);
     }
 
     @Test
@@ -621,7 +630,100 @@ class UserServiceImplTest {
         verifyNoInteractions(faceSimilarity);
     }
 
+    @Test
+    void shouldValidateThenCreateUsersBatchAndReturnResponses() {
+        CreateUsersBatchEntry firstEntry = new CreateUsersBatchEntry("0", "John Doe", "52998224725");
+        CreateUsersBatchEntry secondEntry = new CreateUsersBatchEntry("1", "Jane Doe", "11144477735");
+        CreateUsersBatchRequest batchRequest = new CreateUsersBatchRequest(List.of(firstEntry, secondEntry));
+        MultipartFile firstPicture = batchPicture("0.png");
+        MultipartFile secondPicture = batchPicture("1.png");
+        List<MultipartFile> pictures = List.of(firstPicture, secondPicture);
+        OffsetDateTime now = OffsetDateTime.now();
+        TbUsersRecord firstCreated = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "first.png", now, now, BOXED_EMBEDDING);
+        TbUsersRecord secondCreated = new TbUsersRecord(
+                2L, "Jane Doe", "11144477735", "second.png", now, now, BOXED_EMBEDDING);
+
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", firstPicture, "1", secondPicture)))
+                .thenReturn(Map.of("0", EXTRACTED_EMBEDDING, "1", EXTRACTED_EMBEDDING));
+        when(pictureStorageService.store(firstPicture)).thenReturn("first.png");
+        when(pictureStorageService.store(secondPicture)).thenReturn("second.png");
+        when(userRepository.createBatch(anyList())).thenReturn(List.of(firstCreated, secondCreated));
+
+        CreateUsersBatchResponse response = userService.createBatch(batchRequest, pictures);
+
+        verify(userValidator).validateBatchCreation(List.of(firstEntry, secondEntry), pictures);
+
+        ArgumentCaptor<List<NewUser>> newUsersCaptor = ArgumentCaptor.forClass(List.class);
+        verify(userRepository).createBatch(newUsersCaptor.capture());
+        assertThat(newUsersCaptor.getValue())
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactly(
+                        new NewUser("John Doe", "52998224725", "first.png", BOXED_EMBEDDING),
+                        new NewUser("Jane Doe", "11144477735", "second.png", BOXED_EMBEDDING));
+
+        assertThat(response.users()).containsExactly(
+                new UserResponse(1L, "John Doe", "52998224725", now, now),
+                new UserResponse(2L, "Jane Doe", "11144477735", now, now));
+    }
+
+    @Test
+    void shouldNotCreateUsersBatchWhenValidationFails() {
+        CreateUsersBatchRequest batchRequest =
+                new CreateUsersBatchRequest(List.of(new CreateUsersBatchEntry("0", "", "52998224725")));
+        List<MultipartFile> pictures = List.of(batchPicture("0.png"));
+
+        doThrow(new InvalidNameException("Name given is invalid."))
+                .when(userValidator).validateBatchCreation(batchRequest.users(), pictures);
+
+        assertThatThrownBy(() -> userService.createBatch(batchRequest, pictures))
+                .isInstanceOf(InvalidNameException.class);
+
+        verifyNoInteractions(userBatchEmbeddingExtractor);
+        verifyNoInteractions(pictureStorageService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void shouldNotStoreOrInsertWhenEmbeddingExtractionFails() {
+        CreateUsersBatchRequest batchRequest =
+                new CreateUsersBatchRequest(List.of(new CreateUsersBatchEntry("0", "John Doe", "52998224725")));
+        MultipartFile picture = batchPicture("0.png");
+        List<MultipartFile> pictures = List.of(picture);
+        InvalidFaceCountException extractionFailure =
+                new InvalidFaceCountException("No face detected in the picture given.");
+
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", picture))).thenThrow(extractionFailure);
+
+        assertThatThrownBy(() -> userService.createBatch(batchRequest, pictures)).isSameAs(extractionFailure);
+
+        verifyNoInteractions(pictureStorageService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void shouldDeleteStoredPicturesWhenBatchInsertFails() {
+        CreateUsersBatchRequest batchRequest =
+                new CreateUsersBatchRequest(List.of(new CreateUsersBatchEntry("0", "John Doe", "52998224725")));
+        MultipartFile picture = batchPicture("0.png");
+        List<MultipartFile> pictures = List.of(picture);
+        RuntimeException insertFailure = new RuntimeException("duplicate key");
+
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", picture)))
+                .thenReturn(Map.of("0", EXTRACTED_EMBEDDING));
+        when(pictureStorageService.store(picture)).thenReturn("generated.png");
+        when(userRepository.createBatch(anyList())).thenThrow(insertFailure);
+
+        assertThatThrownBy(() -> userService.createBatch(batchRequest, pictures)).isSameAs(insertFailure);
+
+        verify(pictureStorageService).delete("generated.png");
+    }
+
     private MultipartFile picture() {
         return new MockMultipartFile("picture", "photo.png", "image/png", new byte[] {1, 2, 3});
+    }
+
+    private MultipartFile batchPicture(String filename) {
+        return new MockMultipartFile("pictures", filename, "image/png", new byte[] {1, 2, 3});
     }
 }

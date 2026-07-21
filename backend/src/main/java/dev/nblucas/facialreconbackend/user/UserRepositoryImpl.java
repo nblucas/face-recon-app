@@ -4,6 +4,7 @@ import dev.nblucas.facialreconbackend.user.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep6;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
@@ -93,5 +94,24 @@ public class UserRepositoryImpl implements UserRepository {
                 .selectFrom(TB_USERS)
                 .where(TB_USERS.CPF.eq(cpf))
                 .fetchOptional();
+    }
+
+    public List<TbUsersRecord> createBatch(List<NewUser> users) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        InsertValuesStep6<TbUsersRecord, String, String, String, Float[], OffsetDateTime, OffsetDateTime> insert =
+                this.dsl.insertInto(
+                        TB_USERS, TB_USERS.NAME, TB_USERS.CPF, TB_USERS.PICTURE_PATH, TB_USERS.EMBEDDING,
+                        TB_USERS.CREATED_AT, TB_USERS.UPDATED_AT);
+
+        for (NewUser user : users) {
+            insert = insert.values(user.name(), user.cpf(), user.picturePath(), user.embedding(), now, now);
+        }
+
+        try {
+            return insert.returning().fetch();
+        } catch (DuplicateKeyException duplicateKeyException) {
+            throw new InvalidCpfException("CPF given is already registered.");
+        }
     }
 }
