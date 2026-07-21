@@ -1,11 +1,18 @@
 package dev.nblucas.facialreconbackend.face;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FaceSimilarity {
 
-    private static final float MATCH_THRESHOLD = 0.60f;
+    private final float matchThreshold;
+
+    @Autowired
+    public FaceSimilarity(@Value("${app.face.match-threshold}") float matchThreshold) {
+        this.matchThreshold = matchThreshold;
+    }
 
     public float cosineSimilarity(float[] a, float[] b) {
         float dotProduct = 0f;
@@ -22,6 +29,6 @@ public class FaceSimilarity {
     }
 
     public boolean isMatch(float similarity) {
-        return similarity >= MATCH_THRESHOLD;
+        return similarity >= matchThreshold;
     }
 }
