@@ -26,9 +26,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -377,6 +380,42 @@ class UserServiceImplTest {
                 .isInstanceOf(UserNotFoundException.class);
 
         verifyNoInteractions(pictureStorageService);
+    }
+
+    @Test
+    void shouldDeleteUserAndItsPicture() {
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+
+        userService.delete(1L);
+
+        InOrder inOrder = inOrder(userRepository, pictureStorageService);
+        inOrder.verify(userRepository).delete(1L);
+        inOrder.verify(pictureStorageService).delete("old.png");
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenDeletingUnknownId() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.delete(1L))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verifyNoInteractions(pictureStorageService);
+        verify(userRepository, never()).delete(anyLong());
+    }
+
+    @Test
+    void shouldNotFailWhenDeletingPictureFileFails() {
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        doThrow(new RuntimeException("disk error")).when(pictureStorageService).delete("old.png");
+
+        assertThatCode(() -> userService.delete(1L)).doesNotThrowAnyException();
     }
 
     private MultipartFile picture() {

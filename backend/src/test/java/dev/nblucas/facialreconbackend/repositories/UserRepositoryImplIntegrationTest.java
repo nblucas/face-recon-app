@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
@@ -142,5 +143,19 @@ class UserRepositoryImplIntegrationTest {
         userRepository.create("Otavio Reis", "92392392392", "/pictures/otavio.png");
 
         assertThat(userRepository.count()).isEqualTo(before + 2);
+    }
+
+    @Test
+    void shouldDeleteUser() {
+        TbUsersRecord created = userRepository.create("Test User", "11223344506", "/pictures/test.png");
+
+        userRepository.delete(created.getCoSeqUser());
+
+        assertThat(userRepository.exists(created.getCoSeqUser())).isFalse();
+    }
+
+    @Test
+    void shouldNotThrowWhenDeletingNonExistentId() {
+        assertThatCode(() -> userRepository.delete(Long.MAX_VALUE)).doesNotThrowAnyException();
     }
 }

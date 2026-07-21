@@ -74,7 +74,7 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
 
             if (picture != null) {
-                deleteReplacedPicture(oldPicturePath);
+                deletePictureBestEffort(oldPicturePath);
             }
 
             return createUserResponse(user);
@@ -96,12 +96,12 @@ public class UserServiceImpl implements UserService {
                 : existingUser.getPicturePath();
     }
 
-    private void deleteReplacedPicture(String oldPicturePath) {
+    private void deletePictureBestEffort(String picturePath) {
         try {
-            pictureStorageService.delete(oldPicturePath);
+            pictureStorageService.delete(picturePath);
         } catch (RuntimeException deleteException) {
-            // This ia Best-effort cleanup: the update itself already succeeded, so a
-            // failure here shouldn't turn a successful edit into an error response.
+            // Best-effort cleanup: the primary operation already succeeded, so a failure
+            // here shouldn't turn it into an error response.
         }
     }
 
@@ -126,6 +126,14 @@ public class UserServiceImpl implements UserService {
                 : MediaType.IMAGE_JPEG;
 
         return new UserPictureResponse(bytes, contentType);
+    }
+
+    public void delete(Long id) {
+        TbUsersRecord user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+
+        userRepository.delete(id);
+        deletePictureBestEffort(user.getPicturePath());
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {

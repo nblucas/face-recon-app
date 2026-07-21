@@ -65,4 +65,10 @@ public class UserController {
         UserPictureResponse picture = this.userService.getPicture(id);
         return ResponseEntity.ok().contentType(picture.contentType()).body(picture.bytes());
     }
+
+    @DeleteMapping(path = "/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        this.userService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -13,4 +13,5 @@ public interface UserRepository {
     public List<TbUsersRecord> findAll(int offset, int limit);
     public long count();
     public Optional<TbUsersRecord> findById(Long id);
+    public void delete(Long id);
 }

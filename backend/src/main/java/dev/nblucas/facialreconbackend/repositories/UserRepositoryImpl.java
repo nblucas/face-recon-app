@@ -79,4 +79,8 @@ public class UserRepositoryImpl implements UserRepository {
                 .where(TB_USERS.CO_SEQ_USER.eq(id))
                 .fetchOptional();
     }
+
+    public void delete(Long id) {
+        this.dsl.deleteFrom(TB_USERS).where(TB_USERS.CO_SEQ_USER.eq(id)).execute();
+    }
 }

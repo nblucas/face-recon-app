@@ -12,4 +12,5 @@ public interface UserService {
     public UserResponse update(Long id, UpdateUserRequest request, MultipartFile picture);
     public UserPageResponse list(int offset, int limit);
     public UserPictureResponse getPicture(Long id);
+    public void delete(Long id);
 }
