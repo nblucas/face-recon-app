@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserResponse, UserService } from '../../services/user-service';
 import { EditUserModal } from './edit-user-modal/edit-user-modal';
+import { formatCpf, initialsOf } from '../../utils/user-display';
 
 const PAGE_LIMIT = 20;
 
@@ -24,6 +25,9 @@ export class List {
   protected readonly brokenPictureIds = signal<ReadonlySet<number>>(new Set());
   protected readonly editingUser = signal<UserResponse | null>(null);
   protected readonly pictureVersions = signal<ReadonlyMap<number, number>>(new Map());
+
+  protected readonly formatCpf = formatCpf;
+  protected readonly initialsOf = initialsOf;
 
   constructor() {
     this.fetchUsers();
@@ -64,19 +68,6 @@ export class List {
 
   protected onPictureError(user: UserResponse): void {
     this.brokenPictureIds.update((ids) => new Set(ids).add(user.id));
-  }
-
-  protected formatCpf(cpf: string): string {
-    return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-  }
-
-  protected initialsOf(name: string): string {
-    return name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]!.toUpperCase())
-      .join('');
   }
 
   protected onEdit(user: UserResponse): void {
