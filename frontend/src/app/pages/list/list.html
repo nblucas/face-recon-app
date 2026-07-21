@@ -1,0 +1,57 @@
+<div class="list">
+  <h1>Registered users</h1>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading...</p>
+  } @else {
+    <div class="rows">
+      <div class="row header">
+        <span>Avatar</span>
+        <span>Name</span>
+        <span>CPF</span>
+        <span>Actions</span>
+      </div>
+      @for (user of users(); track user.id) {
+        <div class="row">
+          @if (brokenPictureIds().has(user.id)) {
+            <div class="avatar">{{ initialsOf(user.name) }}</div>
+          } @else {
+            <img
+              class="avatar-picture"
+              [src]="pictureUrl(user)"
+              [alt]="user.name"
+              (error)="onPictureError(user)"
+            />
+          }
+          <span class="name">{{ user.name }}</span>
+          <span class="cpf">{{ formatCpf(user.cpf) }}</span>
+          <span class="actions">
+            <button type="button" class="action-button" (click)="onDetails(user)">Details</button>
+            <button type="button" class="action-button" (click)="onEdit(user)">Edit</button>
+            <button type="button" class="action-button delete" (click)="onDelete(user)">
+              Delete
+            </button>
+          </span>
+        </div>
+      }
+    </div>
+
+    @if (total() > 0) {
+      <div class="pagination">
+        <span class="range">Showing {{ rangeStart }}–{{ rangeEnd }} of {{ total() }}</span>
+        <div class="pagination-buttons">
+          <button type="button" (click)="onPrevious()" [disabled]="!hasPrevious">Previous</button>
+          <button type="button" (click)="onNext()" [disabled]="!hasNext">Next</button>
+        </div>
+      </div>
+    }
+  }
+
+  @if (editingUser(); as user) {
+    <app-edit-user-modal [user]="user" (saved)="onEditSaved()" (cancelled)="onEditCancelled()" />
+  }
+</div>

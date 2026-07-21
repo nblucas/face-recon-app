@@ -1,0 +1,44 @@
+<form class="register" [formGroup]="form" (ngSubmit)="onSubmit()">
+  <h1>Register</h1>
+  <div class="fields">
+    <div class="field">
+      <label for="name">Name</label>
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        class="text-field"
+        [class.invalid]="form.controls.name.invalid && form.controls.name.touched"
+      />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <span class="error">Name is required.</span>
+      }
+    </div>
+    <div class="field">
+      <label for="cpf">CPF</label>
+      <input
+        id="cpf"
+        type="text"
+        formControlName="cpf"
+        class="text-field"
+        [class.invalid]="form.controls.cpf.invalid && form.controls.cpf.touched"
+      />
+      @if (form.controls.cpf.invalid && form.controls.cpf.touched) {
+        <span class="error">CPF is required.</span>
+      }
+    </div>
+    <div class="field">
+      <label for="picture">Picture</label>
+      <input id="picture" type="file" accept="image/*" (change)="onPictureSelected($event)" />
+      @if (form.controls.picture.invalid && form.controls.picture.touched) {
+        <span class="error">Picture is required.</span>
+      }
+    </div>
+  </div>
+  <footer class="footer">
+    @if (errorMessage()) {
+      <span class="error form-error">{{ errorMessage() }}</span>
+    }
+    <button type="submit" class="button">Save</button>
+  </footer>
+</form>

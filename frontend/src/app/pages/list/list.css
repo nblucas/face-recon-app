@@ -1,0 +1,105 @@
+.list {
+  padding: 1.5rem 3rem 1.5rem 1.5rem;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4rem 1fr 12rem 15rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.row.header {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ddd;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.avatar-picture {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.error {
+  color: #c0392b;
+  margin-top: 0.5rem;
+}
+
+.name {
+  font-weight: 500;
+}
+
+.cpf {
+  color: #555;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-button {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.2rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.action-button.delete {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #555;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-buttons button {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.2rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pagination-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+

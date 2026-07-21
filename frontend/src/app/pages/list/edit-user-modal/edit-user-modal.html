@@ -1,0 +1,24 @@
+<div class="overlay">
+  <div class="modal">
+    <h2>Edit user</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="fields">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" type="text" formControlName="name" class="text-field" />
+        </div>
+        <div class="field">
+          <label for="picture">Picture</label>
+          <input id="picture" type="file" accept="image/*" (change)="onPictureSelected($event)" />
+        </div>
+      </div>
+      <footer class="footer">
+        @if (errorMessage()) {
+          <span class="error form-error">{{ errorMessage() }}</span>
+        }
+        <button type="button" class="button" (click)="onCancel()">Cancel</button>
+        <button type="submit" class="button">Save</button>
+      </footer>
+    </form>
+  </div>
+</div>
