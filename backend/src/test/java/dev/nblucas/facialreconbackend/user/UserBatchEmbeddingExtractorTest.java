@@ -48,15 +48,16 @@ class UserBatchEmbeddingExtractorTest {
     }
 
     @Test
-    void shouldPropagateOriginalExceptionTypeWhenExtractionFails() {
+    void shouldPropagateOriginalExceptionTypeWithCpfPrefixedMessageWhenExtractionFails() {
         MultipartFile picture = picture();
         InvalidFaceCountException extractionFailure =
                 new InvalidFaceCountException("No face detected in the picture given.");
 
         when(faceEmbeddingService.extractEmbedding(picture)).thenThrow(extractionFailure);
 
-        assertThatThrownBy(() -> extractor.extractAll(Map.of("0", picture)))
-                .isSameAs(extractionFailure);
+        assertThatThrownBy(() -> extractor.extractAll(Map.of("52998224725", picture)))
+                .isInstanceOf(InvalidFaceCountException.class)
+                .hasMessage("CPF 52998224725: No face detected in the picture given.");
     }
 
     private MultipartFile picture() {

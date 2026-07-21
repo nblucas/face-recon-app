@@ -197,13 +197,14 @@ public class UserServiceImpl implements UserService {
         this.userValidator.validateBatchCreation(entries, pictures);
 
         Map<String, MultipartFile> picturesByClientId = mapPicturesByClientId(pictures);
-        Map<String, float[]> embeddingsByClientId = userBatchEmbeddingExtractor.extractAll(picturesByClientId);
+        Map<String, MultipartFile> picturesByCpf = mapPicturesByCpf(entries, picturesByClientId);
+        Map<String, float[]> embeddingsByCpf = userBatchEmbeddingExtractor.extractAll(picturesByCpf);
 
         List<String> storedPicturePaths = new ArrayList<>();
         try {
             List<NewUser> newUsers = new ArrayList<>();
             for (CreateUsersBatchEntry entry : entries) {
-                NewUser newUser = storeAndBuildNewUser(entry, picturesByClientId, embeddingsByClientId);
+                NewUser newUser = storeAndBuildNewUser(entry, picturesByCpf, embeddingsByCpf);
                 storedPicturePaths.add(newUser.picturePath());
                 newUsers.add(newUser);
             }
@@ -217,10 +218,10 @@ public class UserServiceImpl implements UserService {
     }
 
     private NewUser storeAndBuildNewUser(
-            CreateUsersBatchEntry entry, Map<String, MultipartFile> picturesByClientId, Map<String, float[]> embeddingsByClientId
+            CreateUsersBatchEntry entry, Map<String, MultipartFile> picturesByCpf, Map<String, float[]> embeddingsByCpf
     ) {
-        String picturePath = pictureStorageService.store(picturesByClientId.get(entry.clientId()));
-        Float[] embedding = EmbeddingCodec.box(embeddingsByClientId.get(entry.clientId()));
+        String picturePath = pictureStorageService.store(picturesByCpf.get(entry.cpf()));
+        Float[] embedding = EmbeddingCodec.box(embeddingsByCpf.get(entry.cpf()));
         return new NewUser(entry.name(), entry.cpf(), picturePath, embedding);
     }
 
@@ -242,6 +243,16 @@ public class UserServiceImpl implements UserService {
             picturesByClientId.put(clientId, picture);
         }
         return picturesByClientId;
+    }
+
+    private Map<String, MultipartFile> mapPicturesByCpf(
+            List<CreateUsersBatchEntry> entries, Map<String, MultipartFile> picturesByClientId
+    ) {
+        Map<String, MultipartFile> picturesByCpf = new HashMap<>();
+        for (CreateUsersBatchEntry entry : entries) {
+            picturesByCpf.put(entry.cpf(), picturesByClientId.get(entry.clientId()));
+        }
+        return picturesByCpf;
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {

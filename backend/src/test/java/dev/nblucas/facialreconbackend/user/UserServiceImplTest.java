@@ -644,8 +644,8 @@ class UserServiceImplTest {
         TbUsersRecord secondCreated = new TbUsersRecord(
                 2L, "Jane Doe", "11144477735", "second.png", now, now, BOXED_EMBEDDING);
 
-        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", firstPicture, "1", secondPicture)))
-                .thenReturn(Map.of("0", EXTRACTED_EMBEDDING, "1", EXTRACTED_EMBEDDING));
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("52998224725", firstPicture, "11144477735", secondPicture)))
+                .thenReturn(Map.of("52998224725", EXTRACTED_EMBEDDING, "11144477735", EXTRACTED_EMBEDDING));
         when(pictureStorageService.store(firstPicture)).thenReturn("first.png");
         when(pictureStorageService.store(secondPicture)).thenReturn("second.png");
         when(userRepository.createBatch(anyList())).thenReturn(List.of(firstCreated, secondCreated));
@@ -693,7 +693,7 @@ class UserServiceImplTest {
         InvalidFaceCountException extractionFailure =
                 new InvalidFaceCountException("No face detected in the picture given.");
 
-        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", picture))).thenThrow(extractionFailure);
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("52998224725", picture))).thenThrow(extractionFailure);
 
         assertThatThrownBy(() -> userService.createBatch(batchRequest, pictures)).isSameAs(extractionFailure);
 
@@ -709,8 +709,8 @@ class UserServiceImplTest {
         List<MultipartFile> pictures = List.of(picture);
         RuntimeException insertFailure = new RuntimeException("duplicate key");
 
-        when(userBatchEmbeddingExtractor.extractAll(Map.of("0", picture)))
-                .thenReturn(Map.of("0", EXTRACTED_EMBEDDING));
+        when(userBatchEmbeddingExtractor.extractAll(Map.of("52998224725", picture)))
+                .thenReturn(Map.of("52998224725", EXTRACTED_EMBEDDING));
         when(pictureStorageService.store(picture)).thenReturn("generated.png");
         when(userRepository.createBatch(anyList())).thenThrow(insertFailure);
 

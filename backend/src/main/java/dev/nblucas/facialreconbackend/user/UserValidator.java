@@ -160,9 +160,21 @@ public class UserValidator {
 
     private void validateEachEntry(List<CreateUsersBatchEntry> entries, Map<String, MultipartFile> picturesByClientId) {
         for (CreateUsersBatchEntry entry : entries) {
-            CreateUserRequest request = new CreateUserRequest(entry.name(), entry.cpf());
-            validateCreation(request, picturesByClientId.get(entry.clientId()));
+            try {
+                CreateUserRequest request = new CreateUserRequest(entry.name(), entry.cpf());
+                validateCreation(request, picturesByClientId.get(entry.clientId()));
+            } catch (InvalidCpfException e) {
+                throw new InvalidCpfException(withCpf(entry.cpf(), e.getMessage()));
+            } catch (InvalidNameException e) {
+                throw new InvalidNameException(withCpf(entry.cpf(), e.getMessage()));
+            } catch (InvalidPictureException e) {
+                throw new InvalidPictureException(withCpf(entry.cpf(), e.getMessage()));
+            }
         }
+    }
+
+    private String withCpf(String cpf, String message) {
+        return "CPF " + cpf + ": " + message;
     }
 
     private int calculateCheckDigit(int[] digits, int length) {

@@ -482,14 +482,15 @@ class UserValidatorTest {
     }
 
     @Test
-    void shouldPropagatePerEntryValidationFailureDuringBatchCreation() {
+    void shouldPropagatePerEntryValidationFailureWithCpfPrefixedMessageDuringBatchCreation() {
         List<CreateUsersBatchEntry> entries = List.of(new CreateUsersBatchEntry("0", "", "52998224725"));
         List<MultipartFile> pictures = List.of(batchPicture("0"));
 
         when(userRepository.exists(anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
-                .isInstanceOf(InvalidNameException.class);
+                .isInstanceOf(InvalidNameException.class)
+                .hasMessage("CPF 52998224725: Name given is invalid.");
     }
 
     @ParameterizedTest(name = "[{index}] offset={0}, limit={1}")
