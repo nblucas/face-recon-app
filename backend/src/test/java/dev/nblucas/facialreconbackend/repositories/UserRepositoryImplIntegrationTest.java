@@ -1,5 +1,6 @@
 package dev.nblucas.facialreconbackend.repositories;
 
+import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -29,6 +31,16 @@ class UserRepositoryImplIntegrationTest {
         assertThat(created.getPicturePath()).isEqualTo("/pictures/john.png");
         assertThat(created.getCreatedAt()).isNotNull();
         assertThat(created.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void shouldTranslateUniqueViolationIntoInvalidCpfException() {
+        userRepository.create("Original User", "13579246801", "/pictures/original.png");
+
+        assertThatThrownBy(() ->
+                userRepository.create("Duplicate User", "13579246801", "/pictures/duplicate.png"))
+                .isInstanceOf(InvalidCpfException.class)
+                .hasMessage("CPF given is already registered.");
     }
 
     @Test

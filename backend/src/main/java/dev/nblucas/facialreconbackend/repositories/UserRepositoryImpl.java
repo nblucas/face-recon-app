@@ -1,8 +1,10 @@
 package dev.nblucas.facialreconbackend.repositories;
 
+import dev.nblucas.facialreconbackend.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -22,15 +24,19 @@ public class UserRepositoryImpl implements UserRepository {
     public TbUsersRecord create(String name, String cpf, String picturePath) {
         OffsetDateTime now = OffsetDateTime.now();
 
-        return this.dsl
-                .insertInto(TB_USERS)
-                .set(TB_USERS.NAME, name)
-                .set(TB_USERS.CPF, cpf)
-                .set(TB_USERS.PICTURE_PATH, picturePath)
-                .set(TB_USERS.CREATED_AT, now)
-                .set(TB_USERS.UPDATED_AT, now)
-                .returning()
-                .fetchOne();
+        try {
+            return this.dsl
+                    .insertInto(TB_USERS)
+                    .set(TB_USERS.NAME, name)
+                    .set(TB_USERS.CPF, cpf)
+                    .set(TB_USERS.PICTURE_PATH, picturePath)
+                    .set(TB_USERS.CREATED_AT, now)
+                    .set(TB_USERS.UPDATED_AT, now)
+                    .returning()
+                    .fetchOne();
+        } catch (DuplicateKeyException duplicateKeyException) {
+            throw new InvalidCpfException("CPF given is already registered.");
+        }
     }
 
     public boolean exists(String cpf) {
