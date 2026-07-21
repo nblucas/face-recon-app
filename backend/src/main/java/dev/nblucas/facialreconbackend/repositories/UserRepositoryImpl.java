@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.nblucas.facialreconbackend.jooq.Tables.TB_USERS;
 
@@ -64,5 +65,12 @@ public class UserRepositoryImpl implements UserRepository {
 
     public long count() {
         return this.dsl.fetchCount(TB_USERS);
+    }
+
+    public Optional<TbUsersRecord> findById(Long id) {
+        return this.dsl
+                .selectFrom(TB_USERS)
+                .where(TB_USERS.CO_SEQ_USER.eq(id))
+                .fetchOptional();
     }
 }

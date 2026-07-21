@@ -3,9 +3,11 @@ package dev.nblucas.facialreconbackend.services;
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
+import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
+import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;
@@ -15,11 +17,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -150,6 +154,44 @@ class UserServiceImplTest {
                 .isInstanceOf(InvalidPaginationException.class);
 
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void shouldGetPngPictureAndReturnResponse() {
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "generated.png", OffsetDateTime.now(), OffsetDateTime.now());
+        byte[] bytes = new byte[] {1, 2, 3};
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(pictureStorageService.load("generated.png")).thenReturn(bytes);
+
+        UserPictureResponse response = userService.getPicture(1L);
+
+        assertThat(response).isEqualTo(new UserPictureResponse(bytes, MediaType.IMAGE_PNG));
+    }
+
+    @Test
+    void shouldGetJpegPictureAndReturnResponse() {
+        TbUsersRecord user = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "generated.jpg", OffsetDateTime.now(), OffsetDateTime.now());
+        byte[] bytes = new byte[] {1, 2, 3};
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(pictureStorageService.load("generated.jpg")).thenReturn(bytes);
+
+        UserPictureResponse response = userService.getPicture(1L);
+
+        assertThat(response).isEqualTo(new UserPictureResponse(bytes, MediaType.IMAGE_JPEG));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundWhenGettingPictureForUnknownId() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getPicture(1L))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verifyNoInteractions(pictureStorageService);
     }
 
     private MultipartFile picture() {

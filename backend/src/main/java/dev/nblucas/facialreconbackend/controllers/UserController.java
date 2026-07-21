@@ -3,6 +3,7 @@ package dev.nblucas.facialreconbackend.controllers;
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
+import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.services.UserService;
 import jakarta.validation.Valid;
@@ -57,5 +58,11 @@ public class UserController {
     ) {
         UserPageResponse page = this.userService.list(offset, limit);
         return new ResponseEntity<>(page, HttpStatus.OK);
+    }
+
+    @GetMapping(path = "/{id}/picture")
+    public ResponseEntity<byte[]> getUserPicture(@PathVariable Long id) {
+        UserPictureResponse picture = this.userService.getPicture(id);
+        return ResponseEntity.ok().contentType(picture.contentType()).body(picture.bytes());
     }
 }

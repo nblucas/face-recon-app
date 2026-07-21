@@ -3,11 +3,14 @@ package dev.nblucas.facialreconbackend.services;
 import dev.nblucas.facialreconbackend.dtos.CreateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
+import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
+import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,6 +61,18 @@ public class UserServiceImpl implements UserService {
         long total = userRepository.count();
 
         return new UserPageResponse(users, total, offset, limit);
+    }
+
+    public UserPictureResponse getPicture(Long id) {
+        TbUsersRecord user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+
+        byte[] bytes = pictureStorageService.load(user.getPicturePath());
+        MediaType contentType = user.getPicturePath().toLowerCase().endsWith(".png")
+                ? MediaType.IMAGE_PNG
+                : MediaType.IMAGE_JPEG;
+
+        return new UserPictureResponse(bytes, contentType);
     }
 
     private UserResponse createUserResponse(TbUsersRecord user) {
