@@ -1,6 +1,7 @@
 package dev.nblucas.facialreconbackend.common.exceptions;
 
 import dev.nblucas.facialreconbackend.user.exceptions.EmptyUpdateException;
+import dev.nblucas.facialreconbackend.user.exceptions.InvalidBatchSizeException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidPaginationException;
@@ -57,6 +58,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidFaceCountException.class)
     public ResponseEntity<String> handleInvalidFaceCount(InvalidFaceCountException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidBatchSizeException.class)
+    public ResponseEntity<String> handleInvalidBatchSize(InvalidBatchSizeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }

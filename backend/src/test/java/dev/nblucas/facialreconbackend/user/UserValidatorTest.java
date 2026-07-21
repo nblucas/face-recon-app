@@ -1,8 +1,10 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchEntry;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.exceptions.EmptyUpdateException;
+import dev.nblucas.facialreconbackend.user.exceptions.InvalidBatchSizeException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidPaginationException;
@@ -25,6 +27,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -382,6 +386,112 @@ class UserValidatorTest {
                 .hasMessage("Picture given can not be empty.");
     }
 
+    @Test
+    void shouldNotThrowWhenBatchCreationIsValid() {
+        List<CreateUsersBatchEntry> entries = List.of(
+                new CreateUsersBatchEntry("0", "John Doe", "52998224725"),
+                new CreateUsersBatchEntry("1", "Jane Doe", "11144477735"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"), batchPicture("1"));
+
+        when(userRepository.exists(anyString())).thenReturn(false);
+
+        assertThatCode(() -> userValidator.validateBatchCreation(entries, pictures))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowInvalidBatchSizeExceptionWhenBatchExceedsMaxSize() {
+        List<CreateUsersBatchEntry> entries = new ArrayList<>();
+        List<MultipartFile> pictures = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            String clientId = String.valueOf(i);
+            entries.add(new CreateUsersBatchEntry(clientId, "User " + i, "%011d".formatted(i)));
+            pictures.add(batchPicture(clientId));
+        }
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidBatchSizeException.class)
+                .hasMessage("Batch size must not exceed 8.");
+    }
+
+    @Test
+    void shouldThrowInvalidCpfExceptionWhenBatchHasDuplicateCpfsAmongEntries() {
+        List<CreateUsersBatchEntry> entries = List.of(
+                new CreateUsersBatchEntry("0", "John Doe", "52998224725"),
+                new CreateUsersBatchEntry("1", "John Doe Again", "52998224725"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"), batchPicture("1"));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidCpfException.class)
+                .hasMessage("CPF is duplicated within the batch.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenBatchHasDuplicateClientIdsAmongEntries() {
+        List<CreateUsersBatchEntry> entries = List.of(
+                new CreateUsersBatchEntry("0", "John Doe", "52998224725"),
+                new CreateUsersBatchEntry("0", "Jane Doe", "11144477735"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Duplicate clientId within the batch.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenPictureFilenameHasNoClientId() {
+        List<CreateUsersBatchEntry> entries = List.of(new CreateUsersBatchEntry("0", "John Doe", "52998224725"));
+        List<MultipartFile> pictures = List.of(
+                new MockMultipartFile("pictures", ".png", "image/png", imageBytes("png")));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Picture filename must be named after its clientId.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenTwoPicturesHaveTheSameClientId() {
+        List<CreateUsersBatchEntry> entries = List.of(new CreateUsersBatchEntry("0", "John Doe", "52998224725"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"), batchPicture("0"));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("More than one picture given for the same clientId.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenAnEntryHasNoMatchingPicture() {
+        List<CreateUsersBatchEntry> entries = List.of(
+                new CreateUsersBatchEntry("0", "John Doe", "52998224725"),
+                new CreateUsersBatchEntry("1", "Jane Doe", "11144477735"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Every user in the batch must have exactly one matching picture.");
+    }
+
+    @Test
+    void shouldThrowInvalidPictureExceptionWhenAPictureHasNoMatchingEntry() {
+        List<CreateUsersBatchEntry> entries = List.of(new CreateUsersBatchEntry("0", "John Doe", "52998224725"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"), batchPicture("1"));
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidPictureException.class)
+                .hasMessage("Every user in the batch must have exactly one matching picture.");
+    }
+
+    @Test
+    void shouldPropagatePerEntryValidationFailureDuringBatchCreation() {
+        List<CreateUsersBatchEntry> entries = List.of(new CreateUsersBatchEntry("0", "", "52998224725"));
+        List<MultipartFile> pictures = List.of(batchPicture("0"));
+
+        when(userRepository.exists(anyString())).thenReturn(false);
+
+        assertThatThrownBy(() -> userValidator.validateBatchCreation(entries, pictures))
+                .isInstanceOf(InvalidNameException.class);
+    }
+
     @ParameterizedTest(name = "[{index}] offset={0}, limit={1}")
     @CsvSource({
             "0, 1",
@@ -411,6 +521,10 @@ class UserValidatorTest {
 
     private MultipartFile validPicture() {
         return new MockMultipartFile("picture", "photo.png", "image/png", imageBytes("png"));
+    }
+
+    private MultipartFile batchPicture(String clientId) {
+        return new MockMultipartFile("pictures", clientId + ".png", "image/png", imageBytes("png"));
     }
 
     private byte[] imageBytes(String formatName) {

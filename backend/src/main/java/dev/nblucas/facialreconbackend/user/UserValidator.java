@@ -1,23 +1,32 @@
 package dev.nblucas.facialreconbackend.user;
 
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
+import dev.nblucas.facialreconbackend.user.dto.CreateUsersBatchEntry;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
 import dev.nblucas.facialreconbackend.user.exceptions.EmptyUpdateException;
+import dev.nblucas.facialreconbackend.user.exceptions.InvalidBatchSizeException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidCpfException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.user.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.common.exceptions.InvalidPictureException;
 import dev.nblucas.facialreconbackend.user.exceptions.UserNotFoundException;
+import dev.nblucas.facialreconbackend.common.utils.FilenameWithoutExtension;
 import dev.nblucas.facialreconbackend.common.utils.ImageFormatDetector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class UserValidator {
     private static final int MAX_PAGE_LIMIT = 20;
+    private static final int MAX_BATCH_SIZE = 8;
 
     UserRepository userRepository;
 
@@ -61,6 +70,15 @@ public class UserValidator {
         validatePicture(picture);
     }
 
+    public void validateBatchCreation(List<CreateUsersBatchEntry> entries, List<MultipartFile> pictures) {
+        validateBatchSize(entries);
+        validateNoDuplicateCpfs(entries);
+
+        Map<String, MultipartFile> picturesByClientId = matchPicturesToEntries(entries, pictures);
+
+        validateEachEntry(entries, picturesByClientId);
+    }
+
     public void validatePagination(int offset, int limit) {
         if (offset < 0) {
             throw new InvalidPaginationException("Offset given can not be negative.");
@@ -95,6 +113,55 @@ public class UserValidator {
 
         if(isCpfFormatInvalid) {
             throw new InvalidCpfException("CPF given is invalid.");
+        }
+    }
+
+    private void validateBatchSize(List<CreateUsersBatchEntry> entries) {
+        if (entries.size() > MAX_BATCH_SIZE) {
+            throw new InvalidBatchSizeException("Batch size must not exceed " + MAX_BATCH_SIZE + ".");
+        }
+    }
+
+    private void validateNoDuplicateCpfs(List<CreateUsersBatchEntry> entries) {
+        Set<String> cpfs = entries.stream().map(CreateUsersBatchEntry::cpf).collect(Collectors.toSet());
+        if (cpfs.size() < entries.size()) {
+            throw new InvalidCpfException("CPF is duplicated within the batch.");
+        }
+    }
+
+    private Map<String, MultipartFile> matchPicturesToEntries(
+            List<CreateUsersBatchEntry> entries, List<MultipartFile> pictures
+    ) {
+        Set<String> clientIds = entries.stream().map(CreateUsersBatchEntry::clientId).collect(Collectors.toSet());
+        if (clientIds.size() < entries.size()) {
+            throw new InvalidPictureException("Duplicate clientId within the batch.");
+        }
+
+        Map<String, MultipartFile> picturesByClientId = mapPicturesByClientId(pictures);
+        if (!picturesByClientId.keySet().equals(clientIds)) {
+            throw new InvalidPictureException("Every user in the batch must have exactly one matching picture.");
+        }
+
+        return picturesByClientId;
+    }
+
+    private Map<String, MultipartFile> mapPicturesByClientId(List<MultipartFile> pictures) {
+        Map<String, MultipartFile> picturesByClientId = new HashMap<>();
+        for (MultipartFile picture : pictures) {
+            String clientId = FilenameWithoutExtension.strip(picture.getOriginalFilename())
+                    .orElseThrow(() -> new InvalidPictureException("Picture filename must be named after its clientId."));
+
+            if (picturesByClientId.put(clientId, picture) != null) {
+                throw new InvalidPictureException("More than one picture given for the same clientId.");
+            }
+        }
+        return picturesByClientId;
+    }
+
+    private void validateEachEntry(List<CreateUsersBatchEntry> entries, Map<String, MultipartFile> picturesByClientId) {
+        for (CreateUsersBatchEntry entry : entries) {
+            CreateUserRequest request = new CreateUserRequest(entry.name(), entry.cpf());
+            validateCreation(request, picturesByClientId.get(entry.clientId()));
         }
     }
 
