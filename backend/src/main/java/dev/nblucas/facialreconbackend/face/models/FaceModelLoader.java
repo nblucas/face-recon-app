@@ -1,4 +1,4 @@
-package dev.nblucas.facialreconbackend.facialrecognition;
+package dev.nblucas.facialreconbackend.face.models;
 
 import ai.djl.ndarray.NDList;
 import ai.djl.repository.zoo.Criteria;
@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 
-final class FaceModelLoader {
+public final class FaceModelLoader {
 
     // Official host (storage.insightface.ai) is down — see
     // https://github.com/deepinsight/insightface/issues/1896.
@@ -34,7 +34,7 @@ final class FaceModelLoader {
     private FaceModelLoader() {
     }
 
-    static ZooModel<NDList, NDList> load(String fileName, String downloadUrl, String expectedSha256) throws Exception {
+    public static ZooModel<NDList, NDList> load(String fileName, String downloadUrl, String expectedSha256) throws Exception {
         Path modelFile = downloadAndVerify(fileName, downloadUrl, expectedSha256);
 
         Criteria<NDList, NDList> criteria = Criteria.builder()

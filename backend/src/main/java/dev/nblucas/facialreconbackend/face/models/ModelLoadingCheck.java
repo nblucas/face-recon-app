@@ -1,4 +1,4 @@
-package dev.nblucas.facialreconbackend.facialrecognition;
+package dev.nblucas.facialreconbackend.face.models;
 
 import ai.djl.ndarray.NDList;
 import ai.djl.repository.zoo.ZooModel;

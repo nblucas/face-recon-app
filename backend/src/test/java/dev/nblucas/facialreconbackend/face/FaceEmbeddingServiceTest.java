@@ -1,4 +1,4 @@
-package dev.nblucas.facialreconbackend.facialrecognition;
+package dev.nblucas.facialreconbackend.face;
 
 import dev.nblucas.facialreconbackend.exceptions.InvalidFaceCountException;
 import org.bytedeco.opencv.opencv_core.Mat;

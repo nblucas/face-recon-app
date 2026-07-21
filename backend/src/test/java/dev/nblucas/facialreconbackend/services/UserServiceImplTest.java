@@ -9,7 +9,7 @@ import dev.nblucas.facialreconbackend.exceptions.InvalidFaceCountException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidNameException;
 import dev.nblucas.facialreconbackend.exceptions.InvalidPaginationException;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
-import dev.nblucas.facialreconbackend.facialrecognition.FaceEmbeddingService;
+import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;

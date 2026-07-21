@@ -1,4 +1,4 @@
-package dev.nblucas.facialreconbackend.facialrecognition;
+package dev.nblucas.facialreconbackend.face;
 
 import org.bytedeco.javacpp.indexer.UByteIndexer;
 import org.bytedeco.opencv.opencv_core.Mat;

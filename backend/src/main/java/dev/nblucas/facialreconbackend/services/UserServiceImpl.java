@@ -6,7 +6,7 @@ import dev.nblucas.facialreconbackend.dtos.UserPageResponse;
 import dev.nblucas.facialreconbackend.dtos.UserPictureResponse;
 import dev.nblucas.facialreconbackend.dtos.UserResponse;
 import dev.nblucas.facialreconbackend.exceptions.UserNotFoundException;
-import dev.nblucas.facialreconbackend.facialrecognition.FaceEmbeddingService;
+import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.repositories.UserRepository;
 import dev.nblucas.facialreconbackend.validators.UserValidator;

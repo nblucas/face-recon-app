@@ -1,4 +1,4 @@
-package dev.nblucas.facialreconbackend.facialrecognition;
+package dev.nblucas.facialreconbackend.face;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
