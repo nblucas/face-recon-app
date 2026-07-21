@@ -63,6 +63,7 @@ public class UserServiceImpl implements UserService {
         TbUsersRecord existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
 
+        String oldPicturePath = existingUser.getPicturePath();
         String picturePath = resolvePicturePath(picture, existingUser);
         // Detect face in picture (if exists, and if not, validate)
         // Extract numerical representation of picture
@@ -70,6 +71,11 @@ public class UserServiceImpl implements UserService {
         try {
             TbUsersRecord user = userRepository.update(id, request.name(), picturePath)
                     .orElseThrow(() -> new UserNotFoundException("User with given ID not found."));
+
+            if (picture != null) {
+                deleteReplacedPicture(oldPicturePath);
+            }
+
             return createUserResponse(user);
         } catch (RuntimeException updateException) {
             if (picture != null) {
@@ -83,6 +89,15 @@ public class UserServiceImpl implements UserService {
         return picture != null
                 ? this.pictureStorageService.store(picture)
                 : existingUser.getPicturePath();
+    }
+
+    private void deleteReplacedPicture(String oldPicturePath) {
+        try {
+            pictureStorageService.delete(oldPicturePath);
+        } catch (RuntimeException deleteException) {
+            // This ia Best-effort cleanup: the update itself already succeeded, so a
+            // failure here shouldn't turn a successful edit into an error response.
+        }
     }
 
     public UserPageResponse list(int offset, int limit) {

@@ -221,6 +221,60 @@ class UserServiceImplTest {
     }
 
     @Test
+    void shouldDeleteOldPictureWhenUpdateSucceedsWithNewPicture() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+        TbUsersRecord updated = new TbUsersRecord(
+                1L, "John Smith", "52998224725", "new.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
+
+        userService.update(1L, request, picture);
+
+        verify(pictureStorageService).delete("old.png");
+    }
+
+    @Test
+    void shouldNotDeleteAnythingWhenNoNewPictureGiven() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+        TbUsersRecord updated = new TbUsersRecord(
+                1L, "John Smith", "52998224725", "existing.png", OffsetDateTime.now(), OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.update(1L, "John Smith", "existing.png")).thenReturn(Optional.of(updated));
+
+        userService.update(1L, request, null);
+
+        verifyNoInteractions(pictureStorageService);
+    }
+
+    @Test
+    void shouldStillReturnSuccessfullyWhenDeletingOldPictureFails() {
+        UpdateUserRequest request = new UpdateUserRequest("John Smith");
+        MultipartFile picture = picture();
+        TbUsersRecord existingUser = new TbUsersRecord(
+                1L, "John Doe", "52998224725", "old.png", OffsetDateTime.now(), OffsetDateTime.now());
+        OffsetDateTime createdAt = OffsetDateTime.now().minusDays(1);
+        TbUsersRecord updated = new TbUsersRecord(
+                1L, "John Smith", "52998224725", "new.png", createdAt, OffsetDateTime.now());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(pictureStorageService.store(picture)).thenReturn("new.png");
+        when(userRepository.update(1L, "John Smith", "new.png")).thenReturn(Optional.of(updated));
+        doThrow(new RuntimeException("disk error")).when(pictureStorageService).delete("old.png");
+
+        UserResponse response = userService.update(1L, request, picture);
+
+        assertThat(response).isEqualTo(new UserResponse(1L, "John Smith", "52998224725", createdAt));
+    }
+
+    @Test
     void shouldNotUpdateUserWhenValidationFails() {
         UpdateUserRequest request = new UpdateUserRequest("");
         MultipartFile picture = picture();
