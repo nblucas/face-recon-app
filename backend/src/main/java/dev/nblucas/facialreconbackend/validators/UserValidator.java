@@ -35,7 +35,9 @@ public class UserValidator {
     public void validateUpdate(Long id, UpdateUserRequest request, MultipartFile picture) {
         validateUserExists(id);
         validateName(request.name());
-        validatePicture(picture);
+        if (picture != null) {
+            validatePicture(picture);
+        }
     }
 
     public void validatePagination(int offset, int limit) {

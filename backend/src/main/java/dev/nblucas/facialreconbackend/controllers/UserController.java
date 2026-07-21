@@ -45,7 +45,7 @@ public class UserController {
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
             @Valid @RequestPart UpdateUserRequest request,
-            @RequestPart("picture") MultipartFile picture
+            @RequestPart(value = "picture", required = false) MultipartFile picture
     ) {
         UserResponse user = this.userService.update(id, request, picture);
         return new ResponseEntity<>(user, HttpStatus.OK);

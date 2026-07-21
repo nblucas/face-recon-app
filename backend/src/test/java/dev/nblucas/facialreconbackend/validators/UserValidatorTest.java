@@ -208,6 +208,16 @@ class UserValidatorTest {
     }
 
     @Test
+    void shouldNotThrowWhenUpdateHasNoPicture() {
+        UpdateUserRequest request = new UpdateUserRequest("John Doe");
+
+        when(userRepository.exists(1L)).thenReturn(true);
+
+        assertThatCode(() -> userValidator.validateUpdate(1L, request, null))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void shouldThrowUserNotFoundExceptionWhenIdDoesNotExistOnUpdate() {
         UpdateUserRequest request = new UpdateUserRequest("John Doe");
         MultipartFile picture = validPicture();
