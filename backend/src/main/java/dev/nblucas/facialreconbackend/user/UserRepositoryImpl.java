@@ -87,4 +87,11 @@ public class UserRepositoryImpl implements UserRepository {
     public void delete(Long id) {
         this.dsl.deleteFrom(TB_USERS).where(TB_USERS.CO_SEQ_USER.eq(id)).execute();
     }
+
+    public Optional<TbUsersRecord> findByCpf(String cpf) {
+        return this.dsl
+                .selectFrom(TB_USERS)
+                .where(TB_USERS.CPF.eq(cpf))
+                .fetchOptional();
+    }
 }

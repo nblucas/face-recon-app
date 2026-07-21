@@ -1,5 +1,6 @@
 package dev.nblucas.facialreconbackend.user;
 
+import dev.nblucas.facialreconbackend.common.utils.EmbeddingCodec;
 import dev.nblucas.facialreconbackend.face.FaceSimilarity;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import jakarta.annotation.PreDestroy;
@@ -116,7 +117,7 @@ class UserIdentifier {
         ScoredUser best = null;
 
         for (TbUsersRecord candidate : chunk) {
-            float similarity = faceSimilarity.cosineSimilarity(queryEmbedding, unbox(candidate.getEmbedding()));
+            float similarity = faceSimilarity.cosineSimilarity(queryEmbedding, EmbeddingCodec.unbox(candidate.getEmbedding()));
             ScoredUser scored = new ScoredUser(candidate, similarity);
             if (isBetter(scored, best)) {
                 best = scored;
@@ -128,14 +129,6 @@ class UserIdentifier {
 
     private boolean isBetter(ScoredUser candidate, ScoredUser current) {
         return candidate != null && (current == null || candidate.similarity() > current.similarity());
-    }
-
-    private static float[] unbox(Float[] values) {
-        float[] unboxed = new float[values.length];
-        for (int i = 0; i < values.length; i++) {
-            unboxed[i] = values[i];
-        }
-        return unboxed;
     }
 
     private record ScoredUser(TbUsersRecord user, float similarity) {

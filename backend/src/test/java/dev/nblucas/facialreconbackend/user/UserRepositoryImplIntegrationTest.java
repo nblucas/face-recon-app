@@ -176,4 +176,22 @@ class UserRepositoryImplIntegrationTest {
     void shouldNotThrowWhenDeletingNonExistentId() {
         assertThatCode(() -> userRepository.delete(Long.MAX_VALUE)).doesNotThrowAnyException();
     }
+
+    @Test
+    void shouldReturnUserWhenCpfExists() {
+        TbUsersRecord created = userRepository.create("John Doe", "26254458751", "/pictures/john.png", EMBEDDING);
+
+        Optional<TbUsersRecord> found = userRepository.findByCpf("26254458751");
+
+        assertThat(found).contains(created);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenCpfDoesNotExist() {
+        userRepository.create("Jane Doe", "37363569862", "/pictures/jane.png", EMBEDDING);
+
+        Optional<TbUsersRecord> found = userRepository.findByCpf("99988877766");
+
+        assertThat(found).isEmpty();
+    }
 }

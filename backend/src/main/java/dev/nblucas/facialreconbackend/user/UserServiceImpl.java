@@ -3,6 +3,7 @@ package dev.nblucas.facialreconbackend.user;
 import dev.nblucas.facialreconbackend.face.FaceEmbeddingService;
 import dev.nblucas.facialreconbackend.jooq.tables.records.TbUsersRecord;
 import dev.nblucas.facialreconbackend.common.services.PictureStorageService;
+import dev.nblucas.facialreconbackend.common.utils.EmbeddingCodec;
 import dev.nblucas.facialreconbackend.user.dto.CreateUserRequest;
 import dev.nblucas.facialreconbackend.user.dto.IdentifyUserResponse;
 import dev.nblucas.facialreconbackend.user.dto.UpdateUserRequest;
@@ -43,7 +44,7 @@ public class UserServiceImpl implements UserService {
 
     public UserResponse create(CreateUserRequest request, MultipartFile picture) {
         this.userValidator.validateCreation(request, picture);
-        Float[] embedding = box(faceEmbeddingService.extractEmbedding(picture));
+        Float[] embedding = EmbeddingCodec.box(faceEmbeddingService.extractEmbedding(picture));
         String picturePath = this.pictureStorageService.store(picture);
 
         try {
@@ -53,14 +54,6 @@ public class UserServiceImpl implements UserService {
             deleteOrphanedPicture(picturePath, createException);
             throw createException;
         }
-    }
-
-    private static Float[] box(float[] values) {
-        Float[] boxed = new Float[values.length];
-        for (int i = 0; i < values.length; i++) {
-            boxed[i] = values[i];
-        }
-        return boxed;
     }
 
     private void deleteOrphanedPicture(String picturePath, RuntimeException failure) {
@@ -111,7 +104,7 @@ public class UserServiceImpl implements UserService {
 
     private Float[] resolveEmbedding(MultipartFile picture, TbUsersRecord existingUser) {
         return picture != null
-                ? box(faceEmbeddingService.extractEmbedding(picture))
+                ? EmbeddingCodec.box(faceEmbeddingService.extractEmbedding(picture))
                 : existingUser.getEmbedding();
     }
 
