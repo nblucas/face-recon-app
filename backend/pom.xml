@@ -71,12 +71,29 @@
 			<groupId>org.bytedeco</groupId>
 			<artifactId>opencv</artifactId>
 			<version>4.13.0-1.5.13</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bytedeco</groupId>
+			<artifactId>opencv</artifactId>
+			<version>4.13.0-1.5.13</version>
 			<classifier>linux-x86_64</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.bytedeco</groupId>
 			<artifactId>opencv</artifactId>
 			<version>4.13.0-1.5.13</version>
+			<classifier>linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.bytedeco</groupId>
+			<artifactId>openblas</artifactId>
+			<version>0.3.31-1.5.13</version>
+			<classifier>linux-x86_64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.bytedeco</groupId>
+			<artifactId>openblas</artifactId>
+			<version>0.3.31-1.5.13</version>
 			<classifier>linux-arm64</classifier>
 		</dependency>
 		<dependency>
