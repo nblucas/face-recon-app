@@ -20,6 +20,7 @@ export class List {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly limit = PAGE_LIMIT;
+  protected readonly brokenPictureIds = signal<ReadonlySet<number>>(new Set());
 
   constructor() {
     this.fetchUsers();
@@ -53,6 +54,14 @@ export class List {
     this.fetchUsers();
   }
 
+  protected pictureUrl(user: UserResponse): string {
+    return `/api/v1/users/${user.id}/picture`;
+  }
+
+  protected onPictureError(user: UserResponse): void {
+    this.brokenPictureIds.update((ids) => new Set(ids).add(user.id));
+  }
+
   protected initialsOf(name: string): string {
     return name
       .trim()
@@ -73,6 +82,7 @@ export class List {
   private fetchUsers(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
+    this.brokenPictureIds.set(new Set());
 
     this.userService.listUsers(this.offset(), this.limit).subscribe({
       next: (page) => {

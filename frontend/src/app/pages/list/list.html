@@ -17,7 +17,16 @@
       </div>
       @for (user of users(); track user.id) {
         <div class="row">
-          <div class="avatar">{{ initialsOf(user.name) }}</div>
+          @if (brokenPictureIds().has(user.id)) {
+            <div class="avatar">{{ initialsOf(user.name) }}</div>
+          } @else {
+            <img
+              class="avatar-picture"
+              [src]="pictureUrl(user)"
+              [alt]="user.name"
+              (error)="onPictureError(user)"
+            />
+          }
           <span class="name">{{ user.name }}</span>
           <span class="cpf">{{ user.cpf }}</span>
           <span class="actions">
