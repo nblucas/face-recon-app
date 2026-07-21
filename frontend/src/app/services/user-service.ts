@@ -55,4 +55,8 @@ export class UserService {
     const params = new HttpParams().set('offset', offset).set('limit', limit);
     return this.http.get<UserPageResponse>(this.baseUrl, { params });
   }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
 }
